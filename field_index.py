@@ -1,5 +1,6 @@
 import tkinter as tk
 from pathlib import Path
+from tkinter import filedialog 
 
 # Store application information
 app_name = "Field Index"
@@ -9,6 +10,17 @@ app_title = f"{app_name} v{version}"
 
 # Define application colors
 background_color = "#17191C"
+primary_color = "#42E478"
+
+# Select a CFB27 Dynasty save file
+def select_save_file():
+    selected_file = filedialog.askopenfilename(
+        title="Please select a Dynasty save file!"
+    )
+    if selected_file:
+        print(selected_file)
+        dynasty_file_name = Path(selected_file).name
+        save_status_label.configure(text=dynasty_file_name)
 
 # Create and configure the application window 
 app = tk.Tk()
@@ -29,6 +41,19 @@ title_label = tk.Label(app, image=logo_image)
 title_label.configure(bg=background_color)
 title_label.pack()
 
+# Create and place the save-file selection controls
+select_file_button = tk.Button(
+    app,
+    text="Select Dynasty Save",
+    command=select_save_file
+)
+select_file_button.pack(pady=20)
+
+save_status_label = tk.Label(app,
+    text="No save file selected")
+save_status_label.configure(bg=background_color, fg=primary_color)
+save_status_label.pack(pady=20)
+
+
 # Start the Field Index application
 app.mainloop()
-
