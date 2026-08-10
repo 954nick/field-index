@@ -1,0 +1,6 @@
+# -------------------- JAVASCRIPT DEPENDENCIES --------------------
+parser/node_modules/
+
+# -------------------- PRIVATE GAME FILES --------------------
+*.gz
+DYNASTY-*
