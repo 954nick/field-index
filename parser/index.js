@@ -12,4 +12,15 @@ if(!savePath) {
 
 // Load Dynasty Save
 const franchise = await Franchise.create(savePath);
-console.log("Dynasty save loaded successfully.");
+
+// Display Save Metadata
+console.log(franchise.gameType);
+console.log(franchise.gameYear);
+
+// Validate Save Metadata 
+
+if (franchise.gameType !== "college" || franchise.gameYear !== 27) { 
+    console.error("Field Index requires a valid CFB27 Dynasty save");
+    process.exit(1);
+}
+console.log("Dynasty save loaded successfully");
