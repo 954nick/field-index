@@ -195,16 +195,14 @@ function getGameBoxScoreData(seasonGameReference) {
     );
     const homeOffensivePlayers = homePlayers.filter(player => player.gameStats.some(gameStat => gameStat.statType === "GameOffensiveStats"));
     const awayOffensivePlayers = awayPlayers.filter(player => player.gameStats.some(gameStat => gameStat.statType === "GameOffensiveStats"));
-    const homeDefensivePlayers = homePlayers.filter(player => player.gameStats.some(gameStat => gameStat.statType === "GameDefensiveStats"));
-    const awayDefensivePlayers = awayPlayers.filter(player => player.gameStats.some(gameStat => gameStat.statType === "GameDefensiveStats"));
+    const homeDefensivePlayers = homePlayers.filter(player => player.gameStats.some(gameStat => gameStat.statType === "GameDefensiveStats" || gameStat.statType === "GameDefensiveKPReturnStats"));
+    const awayDefensivePlayers = awayPlayers.filter(player => player.gameStats.some(gameStat => gameStat.statType === "GameDefensiveStats" || gameStat.statType === "GameDefensiveKPReturnStats"));
     const homeOLinePlayers = homePlayers.filter(player => player.gameStats.some(gameStat => gameStat.statType === "GameOLineStats"));
     const awayOLinePlayers = awayPlayers.filter(player => player.gameStats.some(gameStat => gameStat.statType === "GameOLineStats"));
     const homeKickingPlayers = homePlayers.filter(player => player.gameStats.some(gameStat => gameStat.statType === "GameKickingStats"));
     const awayKickingPlayers = awayPlayers.filter(player => player.gameStats.some(gameStat => gameStat.statType === "GameKickingStats"));
     const homeOffensiveReturnPlayers = homePlayers.filter(player => player.gameStats.some(gameStat => gameStat.statType === "GameOffensiveKPReturnStats"));
     const awayOffensiveReturnPlayers = awayPlayers.filter(player => player.gameStats.some(gameStat => gameStat.statType === "GameOffensiveKPReturnStats"));
-    const homeDefensiveReturnPlayers = homePlayers.filter(player => player.gameStats.some(gameStat => gameStat.statType === "GameDefensiveKPReturnStats"));
-    const awayDefensiveReturnPlayers = awayPlayers.filter(player => player.gameStats.some(gameStat => gameStat.statType === "GameDefensiveKPReturnStats"));
     const homePassingPlayers = homeOffensivePlayers.filter(player => player.gameStats.some(gameStat => gameStat.statType === "GameOffensiveStats" && gameStat.stats.PASSATTEMPTS > 0));
     const awayPassingPlayers = awayOffensivePlayers.filter(player => player.gameStats.some(gameStat => gameStat.statType === "GameOffensiveStats" && gameStat.stats.PASSATTEMPTS > 0));
     const homeRushingPlayers = homeOffensivePlayers.filter(player => player.gameStats.some(gameStat => gameStat.statType === "GameOffensiveStats" && gameStat.stats.RUSHATTEMPTS > 0));
@@ -304,7 +302,64 @@ const awayReceivingStats = awayReceivingPlayers.map(player => {
             drops: receivingStats.stats.RECEIVEDROPS,
     }
 })
+const homeDefensiveStats = homeDefensivePlayers.map(player => {
+    const defensiveStat = player.gameStats.find(gameStat =>
+        gameStat.statType === "GameDefensiveStats" ||
+        gameStat.statType === "GameDefensiveKPReturnStats"
+    );
 
+    return {
+        playerRow: player.playerRow,
+        firstName: player.firstName,
+        lastName: player.lastName,
+        position: player.position,
+        soloTackles: defensiveStat.stats.DEFTACKLES,
+        assistedTackles: defensiveStat.stats.ASSDEFTACKLES,
+        totalTackles: defensiveStat.stats.DEFTACKLES + defensiveStat.stats.ASSDEFTACKLES,
+        tacklesForLoss: defensiveStat.stats.DEFTACKLESFORLOSS,
+        sacks: defensiveStat.stats.DLINESACKS + (defensiveStat.stats.DLINEHALFSACK * 0.5),
+        interceptions: defensiveStat.stats.DSECINTS,
+        interceptionYards: defensiveStat.stats.DSECINTRETURNYARDS,
+        longestInterception: defensiveStat.stats.DSECINTLONGESTRETURN,
+        passDeflections: defensiveStat.stats.DEFPASSDEFLECTIONS,
+        interceptionAverage: defensiveStat.stats.DSECINTS > 0 ? defensiveStat.stats.DSECINTRETURNYARDS / defensiveStat.stats.DSECINTS : 0,
+        forcedFumbles: defensiveStat.stats.DLINEFORCEDFUMBLES,
+        fumbleRecoveries: defensiveStat.stats.DLINEFUMBLERECOVERIES,
+        fumbleRecoveryYards: defensiveStat.stats.DLINEFUMBLERECOVERYYARDS,
+        blockedKicks: defensiveStat.stats.DLINEBLOCKS,
+        safeties: defensiveStat.stats.DLINESAFETIES,
+        defensiveTDs: defensiveStat.stats.DSECINTTDS + defensiveStat.stats.DLINEFUMBLETDS,
+    }
+})
+const awayDefensiveStats = awayDefensivePlayers.map(player => {
+    const defensiveStat = player.gameStats.find(gameStat =>
+        gameStat.statType === "GameDefensiveStats" ||
+        gameStat.statType === "GameDefensiveKPReturnStats"
+    );
+
+    return {
+        playerRow: player.playerRow,
+        firstName: player.firstName,
+        lastName: player.lastName,
+        position: player.position,
+        soloTackles: defensiveStat.stats.DEFTACKLES,
+        assistedTackles: defensiveStat.stats.ASSDEFTACKLES,
+        totalTackles: defensiveStat.stats.DEFTACKLES + defensiveStat.stats.ASSDEFTACKLES,
+        tacklesForLoss: defensiveStat.stats.DEFTACKLESFORLOSS,
+        sacks: defensiveStat.stats.DLINESACKS + (defensiveStat.stats.DLINEHALFSACK * 0.5),
+        interceptions: defensiveStat.stats.DSECINTS,
+        interceptionYards: defensiveStat.stats.DSECINTRETURNYARDS,
+        longestInterception: defensiveStat.stats.DSECINTLONGESTRETURN,
+        passDeflections: defensiveStat.stats.DEFPASSDEFLECTIONS,
+        interceptionAverage: defensiveStat.stats.DSECINTS > 0 ? defensiveStat.stats.DSECINTRETURNYARDS / defensiveStat.stats.DSECINTS : 0,
+        forcedFumbles: defensiveStat.stats.DLINEFORCEDFUMBLES,
+        fumbleRecoveries: defensiveStat.stats.DLINEFUMBLERECOVERIES,
+        fumbleRecoveryYards: defensiveStat.stats.DLINEFUMBLERECOVERYYARDS,
+        blockedKicks: defensiveStat.stats.DLINEBLOCKS,
+        safeties: defensiveStat.stats.DLINESAFETIES,
+        defensiveTDs: defensiveStat.stats.DSECINTTDS + defensiveStat.stats.DLINEFUMBLETDS,
+    }
+})
 const boxScoreData = {
     gameContext: gameContext,
     players: boxScorePlayers,
@@ -331,6 +386,10 @@ const boxScoreData = {
     homeReceivingStats: homeReceivingStats,
     awayReceivingStats: awayReceivingStats,
 
+    // Defensive Box Score Stats
+    homeDefensiveStats: homeDefensiveStats,
+    awayDefensiveStats: awayDefensiveStats,
+
     // Defensive Players
     homeDefensivePlayers: homeDefensivePlayers,
     awayDefensivePlayers: awayDefensivePlayers,
@@ -347,9 +406,6 @@ const boxScoreData = {
     homeOffensiveReturnPlayers: homeOffensiveReturnPlayers,
     awayOffensiveReturnPlayers: awayOffensiveReturnPlayers,
 
-    // Defensive Return Players
-    homeDefensiveReturnPlayers: homeDefensiveReturnPlayers,
-    awayDefensiveReturnPlayers: awayDefensiveReturnPlayers,
 };
 
 return boxScoreData;
@@ -420,4 +476,3 @@ const cleanPlayers = activePlayers.map(record => {
         weight: record.Weight + 160
     };
 });
-
