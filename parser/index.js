@@ -77,5 +77,5 @@ const cleanPlayers = activePlayers.map(record => {
         
 };
 });
-console.log(cleanPlayers[6]);
+console.log(cleanPlayers[23]);
 
