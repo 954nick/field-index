@@ -1,6 +1,7 @@
 // Import Dependencies 
 import Franchise from "madden-franchise";
 import { fileURLToPath } from "node:url";
+import { TABLE_IDS } from "./table_ids.js"
 
 // Locate Custom Schema Directory
 const schemaDirectory = fileURLToPath(
@@ -35,14 +36,62 @@ if (franchise.gameType !== "college" || franchise.gameYear !== 27) {
 }
 console.log("Dynasty save loaded successfully");
 
+// Read Table Helper 
+async function readTable(tableID) {
+    const table = franchise.getTableByUniqueId(tableID);
+    await table.readRecords();
+    return table;
+}
+
+// Season Stats Helper
+function getPlayerSeasonStats(player){
+    const seasonStatsReference = player.getReferenceDataByKey("SeasonStats")
+    if (seasonStatsReference.tableId === 0) return [];
+    const playerSeasonStats = seasonStatsTable.records[seasonStatsReference.rowNumber];
+    const seasonStats = [];
+    for (let i = 0; i < playerSeasonStats.arraySize; i++) {
+        const fieldName = `SeasonStats${i}`;
+        const statReference = playerSeasonStats.getReferenceDataByKey(fieldName);
+        if (!statReference || statReference.tableID === 0) continue;
+        const statRecord = franchise.getReferencedRecord(playerSeasonStats[fieldName]);
+        const statData = {};
+        for (const field of statRecord._offsetTable) {
+            statData[field.name] = statRecord[field.name];
+        }
+        seasonStats.push({
+            seasonYear: statRecord.SEAS_YEAR,
+            teamIndex: statRecord.YEARBYYEARTEAMINDEX,
+            statType: statRecord._parent.name,
+            stats: statData
+
+        });
+    }
+return seasonStats;
+}
+
 // Read Player Table
-const playerTable = franchise.getTableByName("Player");
-await playerTable.readRecords();
+const playerTable = await readTable(TABLE_IDS.Player);
 const activePlayers = playerTable.records.filter(record => !record.isEmpty);
 
 // Read Team Table
-const teamTable = franchise.getTableByUniqueId(3359508968);
-await teamTable.readRecords();
+const teamTable = await readTable(TABLE_IDS.Team);
+
+// Read Season Stats
+const seasonStatsTable = await readTable(TABLE_IDS.SeasonStats);
+const seasonOffensiveStatsTable = await readTable(TABLE_IDS.SeasonOffensiveStats);
+const seasonDefensiveStatsTable = await readTable(TABLE_IDS.SeasonDefensiveStats);
+const seasonOLineStatsTable = await readTable(TABLE_IDS.SeasonOLineStats);
+const seasonKickingStatsTable = await readTable(TABLE_IDS.SeasonKickingStats);
+const seasonOffensiveKPReturnStatsTable = await readTable(TABLE_IDS.SeasonOffensiveKPReturnStats);
+const seasonDefensiveKPReturnStatsTable = await readTable(TABLE_IDS.SeasonDefensiveKPReturnStats);
+const teamStatsTable = await readTable(TABLE_IDS.TeamStats);
+
+const testPlayer = activePlayers.find(player =>
+    player.getReferenceDataByKey("SeasonStats").tableId !== 0
+);
+
+const testSeasonStats = getPlayerSeasonStats(testPlayer);
+console.log(testSeasonStats);
 
 // Create Team Name Lookup
 const teamIndexToDisplayName = new Map();
