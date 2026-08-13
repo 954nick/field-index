@@ -360,6 +360,39 @@ const awayDefensiveStats = awayDefensivePlayers.map(player => {
         defensiveTDs: defensiveStat.stats.DSECINTTDS + defensiveStat.stats.DLINEFUMBLETDS,
     }
 })
+const homeOLineStats = homeOLinePlayers.map(player => {
+    const oLineStat = player.gameStats.find(gameStat =>
+        gameStat.statType === "GameOLineStats"
+    );
+
+    return {
+        playerRow: player.playerRow,
+        firstName: player.firstName,
+        lastName: player.lastName,
+        position: player.position,
+        pancakes: oLineStat.stats.OLINEPANCAKES,
+        sacksAllowed: oLineStat.stats.OLINESACKSALLOWED,
+        downsPlayed: oLineStat.stats.DOWNSPLAYED,
+        gamesStarted: oLineStat.stats.GAMESSTARTED,
+    }
+})
+const awayOLineStats = awayOLinePlayers.map(player => {
+    const oLineStat = player.gameStats.find(gameStat =>
+        gameStat.statType === "GameOLineStats"
+    );
+
+    return {
+        playerRow: player.playerRow,
+        firstName: player.firstName,
+        lastName: player.lastName,
+        position: player.position,
+        pancakes: oLineStat.stats.OLINEPANCAKES,
+        sacksAllowed: oLineStat.stats.OLINESACKSALLOWED,
+        downsPlayed: oLineStat.stats.DOWNSPLAYED,
+        gamesStarted: oLineStat.stats.GAMESSTARTED,
+    }
+})
+
 const boxScoreData = {
     gameContext: gameContext,
     players: boxScorePlayers,
@@ -397,6 +430,10 @@ const boxScoreData = {
     // O-Line Players
     homeOLinePlayers: homeOLinePlayers,
     awayOLinePlayers: awayOLinePlayers,
+
+    // O-Line Box Score Stats
+    homeOLineStats: homeOLineStats,
+    awayOLineStats: awayOLineStats,
 
     // Kicking Players
     homeKickingPlayers: homeKickingPlayers,
@@ -476,3 +513,25 @@ const cleanPlayers = activePlayers.map(record => {
         weight: record.Weight + 160
     };
 });
+
+// Temporary Clean O-Line Box Score Test
+const camAdkins = cleanPlayers.find(player =>
+    player.firstName === "Cam" &&
+    player.lastName === "Adkins"
+);
+
+const camAdkinsGame = camAdkins.gameStats.find(gameStat =>
+    gameStat.gameContext?.seasonYear === 2 &&
+    gameStat.gameContext?.gameWeek === 7 &&
+    gameStat.opponentTeamName === "Missouri State"
+);
+
+const oLineBoxScoreTest = getGameBoxScoreData(
+    camAdkinsGame.seasonGameReference
+);
+
+console.log("HOME O-LINE STATS:");
+console.log(oLineBoxScoreTest.homeOLineStats);
+
+console.log("AWAY O-LINE STATS:");
+console.log(oLineBoxScoreTest.awayOLineStats);
