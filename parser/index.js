@@ -199,8 +199,38 @@ function getGameBoxScoreData(seasonGameReference) {
     const awayDefensivePlayers = awayPlayers.filter(player => player.gameStats.some(gameStat => gameStat.statType === "GameDefensiveStats" || gameStat.statType === "GameDefensiveKPReturnStats"));
     const homeOLinePlayers = homePlayers.filter(player => player.gameStats.some(gameStat => gameStat.statType === "GameOLineStats"));
     const awayOLinePlayers = awayPlayers.filter(player => player.gameStats.some(gameStat => gameStat.statType === "GameOLineStats"));
-    const homeKickingPlayers = homePlayers.filter(player => player.gameStats.some(gameStat => gameStat.statType === "GameKickingStats"));
-    const awayKickingPlayers = awayPlayers.filter(player => player.gameStats.some(gameStat => gameStat.statType === "GameKickingStats"));
+    const homeKickingPlayers = homePlayers.filter(player =>
+    player.gameStats.some(gameStat =>
+        gameStat.statType === "GameKickingStats" &&
+        (
+            gameStat.stats.KICKFGATTEMPTS > 0 ||
+            gameStat.stats.KICKEPATTEMPTS > 0 
+        )
+    )
+);
+
+    const awayKickingPlayers = awayPlayers.filter(player =>
+        player.gameStats.some(gameStat =>
+            gameStat.statType === "GameKickingStats" &&
+            (
+                gameStat.stats.KICKFGATTEMPTS > 0 ||
+                gameStat.stats.KICKEPATTEMPTS > 0 
+            )
+        )
+    );
+    const homePuntingPlayers = homePlayers.filter(player =>
+    player.gameStats.some(gameStat =>
+        gameStat.statType === "GameKickingStats" &&
+        gameStat.stats.PUNTATTEMPTS > 0
+    )
+);
+
+const awayPuntingPlayers = awayPlayers.filter(player =>
+    player.gameStats.some(gameStat =>
+        gameStat.statType === "GameKickingStats" &&
+        gameStat.stats.PUNTATTEMPTS > 0
+    )
+);
     const homeOffensiveReturnPlayers = homePlayers.filter(player => player.gameStats.some(gameStat => gameStat.statType === "GameOffensiveKPReturnStats"));
     const awayOffensiveReturnPlayers = awayPlayers.filter(player => player.gameStats.some(gameStat => gameStat.statType === "GameOffensiveKPReturnStats"));
     const homePassingPlayers = homeOffensivePlayers.filter(player => player.gameStats.some(gameStat => gameStat.statType === "GameOffensiveStats" && gameStat.stats.PASSATTEMPTS > 0));
@@ -392,6 +422,87 @@ const awayOLineStats = awayOLinePlayers.map(player => {
         gamesStarted: oLineStat.stats.GAMESSTARTED,
     }
 })
+const homeKickingStats = homeKickingPlayers.map(player => {
+    const kickingStat = player.gameStats.find(gameStat =>
+        gameStat.statType === "GameKickingStats"
+    );
+
+    return {
+        playerRow: player.playerRow,
+        firstName: player.firstName,
+        lastName: player.lastName,
+        position: player.position,
+        fieldGoalsMade: kickingStat.stats.KICKFGMADE,
+        fieldGoalsAttempted: kickingStat.stats.KICKFGATTEMPTS,
+        longestFieldGoal: kickingStat.stats.KICKFGLONGEST,
+        extraPointsMade: kickingStat.stats.KICKEPMADE,
+        extraPointsAttempted: kickingStat.stats.KICKEPATTEMPTS,
+        gamesStarted: kickingStat.stats.GAMESSTARTED,
+        downsPlayed: kickingStat.stats.DOWNSPLAYED
+    };
+})
+const awayKickingStats = awayKickingPlayers.map(player => {
+    const kickingStat = player.gameStats.find(gameStat =>
+        gameStat.statType === "GameKickingStats"
+    );
+
+    return {
+        playerRow: player.playerRow,
+        firstName: player.firstName,
+        lastName: player.lastName,
+        position: player.position,
+        fieldGoalsMade: kickingStat.stats.KICKFGMADE,
+        fieldGoalsAttempted: kickingStat.stats.KICKFGATTEMPTS,
+        longestFieldGoal: kickingStat.stats.KICKFGLONGEST,
+        extraPointsMade: kickingStat.stats.KICKEPMADE,
+        extraPointsAttempted: kickingStat.stats.KICKEPATTEMPTS,
+        gamesStarted: kickingStat.stats.GAMESSTARTED,
+        downsPlayed: kickingStat.stats.DOWNSPLAYED
+    };
+})
+const homePuntingStats = homePuntingPlayers.map(player => {
+    const puntingStat = player.gameStats.find(gameStat =>
+        gameStat.statType === "GameKickingStats"
+    );
+
+    return {
+        playerRow: player.playerRow,
+        firstName: player.firstName,
+        lastName: player.lastName,
+        position: player.position,
+        punts: puntingStat.stats.PUNTATTEMPTS,
+        puntingYards: puntingStat.stats.PUNTYARDS,
+        puntingAverage: puntingStat.stats.PUNTYARDS / puntingStat.stats.PUNTATTEMPTS,
+        netPuntingYards: puntingStat.stats.PUNTNETYARDS,
+        netPuntingAverage: puntingStat.stats.PUNTNETYARDS / puntingStat.stats.PUNTATTEMPTS,
+        longestPunt: puntingStat.stats.PUNTLONGEST,
+        puntsInside20: puntingStat.stats.PUNTIN20,
+        touchbacks: puntingStat.stats.PUNTTOUCHBACKS,
+        blockedPunts: puntingStat.stats.PUNTBLOCKED
+    }
+})
+
+const awayPuntingStats = awayPuntingPlayers.map(player => {
+    const puntingStat = player.gameStats.find(gameStat =>
+        gameStat.statType === "GameKickingStats"
+    );
+
+    return {
+        playerRow: player.playerRow,
+        firstName: player.firstName,
+        lastName: player.lastName,
+        position: player.position,
+        punts: puntingStat.stats.PUNTATTEMPTS,
+        puntingYards: puntingStat.stats.PUNTYARDS,
+        puntingAverage: puntingStat.stats.PUNTYARDS / puntingStat.stats.PUNTATTEMPTS,
+        netPuntingYards: puntingStat.stats.PUNTNETYARDS,
+        netPuntingAverage: puntingStat.stats.PUNTNETYARDS / puntingStat.stats.PUNTATTEMPTS,
+        longestPunt: puntingStat.stats.PUNTLONGEST,
+        puntsInside20: puntingStat.stats.PUNTIN20,
+        touchbacks: puntingStat.stats.PUNTTOUCHBACKS,
+        blockedPunts: puntingStat.stats.PUNTBLOCKED
+    }
+})
 
 const boxScoreData = {
     gameContext: gameContext,
@@ -438,6 +549,18 @@ const boxScoreData = {
     // Kicking Players
     homeKickingPlayers: homeKickingPlayers,
     awayKickingPlayers: awayKickingPlayers,
+
+    // Kicking Box Score Stats
+    homeKickingStats: homeKickingStats,
+    awayKickingStats: awayKickingStats,
+
+    // Punting Players
+    homePuntingPlayers: homePuntingPlayers,
+    awayPuntingPlayers: awayPuntingPlayers,
+
+    // Punting Box Score Stats
+    homePuntingStats: homePuntingStats,
+    awayPuntingStats: awayPuntingStats,
 
     // Offensive Return Players
     homeOffensiveReturnPlayers: homeOffensiveReturnPlayers,
@@ -514,24 +637,3 @@ const cleanPlayers = activePlayers.map(record => {
     };
 });
 
-// Temporary Clean O-Line Box Score Test
-const camAdkins = cleanPlayers.find(player =>
-    player.firstName === "Cam" &&
-    player.lastName === "Adkins"
-);
-
-const camAdkinsGame = camAdkins.gameStats.find(gameStat =>
-    gameStat.gameContext?.seasonYear === 2 &&
-    gameStat.gameContext?.gameWeek === 7 &&
-    gameStat.opponentTeamName === "Missouri State"
-);
-
-const oLineBoxScoreTest = getGameBoxScoreData(
-    camAdkinsGame.seasonGameReference
-);
-
-console.log("HOME O-LINE STATS:");
-console.log(oLineBoxScoreTest.homeOLineStats);
-
-console.log("AWAY O-LINE STATS:");
-console.log(oLineBoxScoreTest.awayOLineStats);
