@@ -1,6 +1,5 @@
 // Map Unique Table IDs
 const TABLE_IDS = {
-    
     // Core Tables
     Player: 1612938518,
     Team: 3359508968,
@@ -24,6 +23,10 @@ const TABLE_IDS = {
     GameOffensiveKPReturnStats: 3388716768,
     GameDefensiveKPReturnStats: 300209847,
     SeasonGame: 4049338978,
+
+    // Scoring Summary
+    ScoringSummaryArray: 2163562825,
+    ScoringSummary: 3993278100,
 
     // Career Statistics
     CareerOffensiveStats: 1181574195,
@@ -62,7 +65,7 @@ const TABLE_IDS = {
     // Program and Historical Team Data
     Conference: 3820706130,
     TeamHistoricalSeriesYear: 2273478024,
-    MySchoolTrackingTable: 349376083
-}
+    MySchoolTrackingTable: 349376083,
+};
 
 export { TABLE_IDS };
