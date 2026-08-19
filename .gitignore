@@ -2,5 +2,12 @@
 parser/node_modules/
 
 # -------------------- PRIVATE GAME FILES --------------------
-*.gz
 DYNASTY-*
+*.gz
+!parser/schemas/C27_486_1.gz
+
+# -------------------- DATABASE / LOCAL ENVIRONMENT --------------------
+.env
+*.log
+__pycache__/
+*.pyc

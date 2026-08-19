@@ -4,7 +4,7 @@ from tkinter import filedialog
 
 # Store application information
 app_name = "Field Index"
-version = 0.1
+version = "0.3.3"
 
 app_title = f"{app_name} v{version}"
 

@@ -1,15 +1,13 @@
 {
-  "name": "parser",
-  "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "name": "field-index-parser",
+  "version": "0.3.3",
+  "description": "CFB27 Dynasty read/edit backend for Field Index",
   "type": "module",
+  "scripts": {
+    "check": "node --check index.js && node --check editor.js && node --check coach_schema_compat.js && node --check table_ids.js",
+    "read": "node index.js"
+  },
+  "license": "ISC",
   "dependencies": {
     "madden-franchise": "^4.3.6"
   }
