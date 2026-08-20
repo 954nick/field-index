@@ -3,6 +3,7 @@ const TABLE_IDS = {
     // Core Tables
     Player: 1612938518,
     Team: 3359508968,
+    SeasonInfo: 3123991521,
 
     // Season Statistics
     SeasonStats: 143029489,

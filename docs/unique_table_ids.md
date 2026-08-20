@@ -8,6 +8,7 @@ This document is a human-readable reference for the current Field Index v0.3.3 t
 
 - Player: `1612938518`
 - Team: `3359508968`
+- SeasonInfo: `3123991521`
 
 ## Season statistics
 

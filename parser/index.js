@@ -1834,6 +1834,8 @@ function getTeamSummary(teamRecord) {
         teamIndex: teamRecord.TeamIndex,
         teamName: teamRecord.DisplayName,
         nickName: teamRecord.NickName,
+        assetName: teamRecord.AssetName || null,
+        isTeamBuilder: Boolean(teamRecord.IsTeamBuilder),
         abbreviation:
             teamRecord.ShortName ||
             teamRecord.TEAM_PREFIX_NAME ||
@@ -1848,6 +1850,12 @@ function getTeamSummary(teamRecord) {
         playingStyleGrades: gradeSnapshot.playingStyleGrades,
         teamRank: teamRecord.TeamRank,
         conferenceStanding: teamRecord.CurSeasonConfStanding,
+        wins: (teamRecord.ConfWin ?? 0) + (teamRecord.NonConfWin ?? 0),
+        losses: (teamRecord.ConfLoss ?? 0) + (teamRecord.NonConfLoss ?? 0),
+        conferenceWins: teamRecord.ConfWin ?? 0,
+        conferenceLosses: teamRecord.ConfLoss ?? 0,
+        nonConferenceWins: teamRecord.NonConfWin ?? 0,
+        nonConferenceLosses: teamRecord.NonConfLoss ?? 0,
         playoffStatus: teamRecord.PlayoffStatus,
         playoffRoundReached: teamRecord.PlayoffRoundReached
     };
@@ -2213,6 +2221,16 @@ async function buildCoachData(teamRecord, coachRecord, role) {
         firstName: coachRecord.FirstName,
         lastName: coachRecord.LastName,
         displayName: `${coachRecord.FirstName} ${coachRecord.LastName}`,
+        identity: {
+            presentationId:
+                Number.isInteger(coachRecord.PresentationId) && coachRecord.PresentationId > 0
+                    ? coachRecord.PresentationId
+                    : null,
+            assetName: coachRecord.AssetName || null,
+            homeTown: coachRecord.HomeTown ?? null,
+            homeState: coachRecord.HomeState ?? null,
+            almaMater: coachRecord.AlmaMater ?? null
+        },
         position: coachRecord.Position,
         teamIndex: teamRecord.TeamIndex,
         teamName: teamRecord.DisplayName,
@@ -2289,6 +2307,16 @@ function buildAllCoachData() {
             firstName: coachRecord.FirstName,
             lastName: coachRecord.LastName,
             displayName: `${coachRecord.FirstName} ${coachRecord.LastName}`.trim(),
+            identity: {
+                presentationId:
+                    Number.isInteger(coachRecord.PresentationId) && coachRecord.PresentationId > 0
+                        ? coachRecord.PresentationId
+                        : null,
+                assetName: coachRecord.AssetName || null,
+                homeTown: coachRecord.HomeTown ?? null,
+                homeState: coachRecord.HomeState ?? null,
+                almaMater: coachRecord.AlmaMater ?? null
+            },
             position: coachRecord.Position,
             teamIndex: coachRecord.TeamIndex,
             teamName:
@@ -2306,6 +2334,11 @@ function buildAllCoachData() {
             specialty: coachRecord.COACH_SPECIALTY,
             dominantArchetype: coachRecord.DominantArchetype,
             almaMater: coachRecord.AlmaMater,
+            contractStatus: coachRecord.ContractStatus,
+            contractYearsRemaining: coachRecord.ContractYearsRemaining,
+            jobSecurityStatus: coachRecord.CurrentJobSecurityStatus,
+            jobSecurityPercentage: coachRecord.CurrentJobSecurityPercentage,
+            isUserControlled: coachRecord.IsUserControlled,
             appearance: getScalarAppearanceSnapshot(
                 coachRecord,
                 COACH_APPEARANCE_FIELDS
@@ -3090,6 +3123,7 @@ function buildPostseasonData(schedule, cfp, awards, rankings) {
 const playerTable = await readTable(TABLE_IDS.Player);
 const activePlayers = playerTable.records.filter(record => !record.isEmpty);
 const teamTable = await readTable(TABLE_IDS.Team);
+const seasonInfoTable = await readTable(TABLE_IDS.SeasonInfo);
 
 // Season Statistics
 const seasonStatsTable = await readTable(TABLE_IDS.SeasonStats);
@@ -3203,10 +3237,30 @@ for (const teamRecord of teamTable.records) {
 
 // -------------------- Current Dynasty Context --------------------
 const storedSeasonGames = seasonGameTable.records.filter(record => !record.isEmpty);
-const currentSeasonIndex = storedSeasonGames.length > 0
+const seasonInfoRecord = seasonInfoTable.records.find(record => !record.isEmpty) ?? null;
+const scheduleSeasonIndex = storedSeasonGames.length > 0
     ? Math.max(...storedSeasonGames.map(record => record.SeasonYear ?? 0))
     : 0;
-const currentSeasonYear = dynastyStartYear + currentSeasonIndex;
+const currentSeasonYear = Number.isInteger(seasonInfoRecord?.CurrentSeasonYear)
+    ? seasonInfoRecord.CurrentSeasonYear
+    : dynastyStartYear + scheduleSeasonIndex;
+const currentSeasonIndex = currentSeasonYear - dynastyStartYear;
+const currentWeek = seasonInfoRecord?.CurrentWeek ?? null;
+const currentWeekType = seasonInfoRecord?.CurrentWeekType ?? null;
+const currentOffseasonStage = seasonInfoRecord?.CurrentOffseasonStage ?? null;
+
+// Lifecycle checkpoint verification showed that by offseason stage 7
+// (National Signing Day), new freshmen/transfers are already on the next
+// season's rosters even though SeasonInfo.CurrentSeasonYear still reflects
+// the season that just ended. Keep the save/import season separate from the
+// effective roster season so historical player/team relationships are not
+// assigned to the wrong year.
+const rosterRolledToNextSeason =
+    currentWeekType === "OffSeason" &&
+    Number.isInteger(currentOffseasonStage) &&
+    currentOffseasonStage >= 7;
+const rosterSeasonIndex = currentSeasonIndex + (rosterRolledToNextSeason ? 1 : 0);
+const rosterSeasonYear = dynastyStartYear + rosterSeasonIndex;
 
 // -------------------- Transform Player Records into Clean Data --------------------
 // TeamIndex 255 is shared by FCS placeholders and non-roster player records.
@@ -3232,6 +3286,14 @@ const cleanPlayers = activePlayers
                 record.PLYR_HOME_TOWN && record.PLYR_HOME_STATE
                     ? `${record.PLYR_HOME_TOWN}, ${record.PLYR_HOME_STATE}`
                     : record.PLYR_HOME_TOWN || record.PLYR_HOME_STATE || "",
+            identity: {
+                presentationId:
+                    Number.isInteger(record.PresentationId) && record.PresentationId > 0
+                        ? record.PresentationId
+                        : null,
+                assetName: record.PLYR_ASSETNAME || null,
+                birthDateRaw: record.PLYR_BIRTHDATE ?? null
+            },
             overallRating: record.OverallRating,
             jerseyNumber: record.JerseyNum,
             classYear: record.SchoolYear,
@@ -3282,6 +3344,8 @@ const cleanPlayers = activePlayers
             heightInches,
             heightDisplay: `${heightFeet}'${remainingInches}`,
             weight: record.Weight + 160,
+            attributes: getPlayerAttributeSnapshot(record),
+            abilities: getPlayerAbilitySnapshot(record),
             appearance: getScalarAppearanceSnapshot(
                 record,
                 PLAYER_APPEARANCE_FIELDS
@@ -3332,6 +3396,12 @@ const fieldIndexData = {
         dynastyStartYear,
         currentSeasonIndex,
         currentSeasonYear,
+        currentWeek,
+        currentWeekType,
+        currentOffseasonStage,
+        rosterSeasonIndex,
+        rosterSeasonYear,
+        rosterRolledToNextSeason,
         storedSeasonGameCount: schedule.length,
         fcsPlayerStatsExcluded: true,
         coachSchemaCompatibility

@@ -5,7 +5,10 @@
   "type": "module",
   "scripts": {
     "check": "node --check index.js && node --check editor.js && node --check coach_schema_compat.js && node --check table_ids.js",
-    "read": "node index.js"
+    "read": "node index.js",
+    "db:migrate": "node ../database/migrate.js",
+    "db:import": "node ../database/import_save.js",
+    "db:verify": "node ../database/verify.js"
   },
   "license": "ISC",
   "dependencies": {
