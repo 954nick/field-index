@@ -1,7 +1,7 @@
 {
   "format": "field_index_windows_runtime_manifest",
   "version": 1,
-  "backend_version": "0.7.0",
+  "backend_version": "1.0.0",
   "status": "preparation_only",
   "required": {
     "cfb27_schema": "parser/schemas/C27_486_1.gz",

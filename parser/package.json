@@ -1,6 +1,6 @@
 {
   "name": "field-index-parser",
-  "version": "0.7.0",
+  "version": "1.0.0",
   "description": "CFB27 Dynasty read/edit backend for Field Index",
   "type": "module",
   "scripts": {
