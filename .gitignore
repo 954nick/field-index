@@ -11,3 +11,9 @@ DYNASTY-*
 *.log
 __pycache__/
 *.pyc
+# -------------------- CFB27 GAME ASSETS --------------------
+assets/awards/
+assets/coaches/
+assets/player_portraits/
+assets/postseason/
+assets/teams/

@@ -1,7 +1,4 @@
-# Field Index PostgreSQL ERD — Pre-Game Storage
-
-This ERD documents the database through the point immediately before game
-storage is introduced.
+# Field Index PostgreSQL ERD
 
 ```mermaid
 erDiagram
@@ -35,38 +32,90 @@ erDiagram
     SAVE_IMPORTS ||--o{ COACH_IMPORT_SNAPSHOTS : captures
     COACH_SEASONS ||--o{ COACH_IMPORT_SNAPSHOTS : snapshot_of
     COACH_IMPORT_SNAPSHOTS ||--o{ COACH_STAT_SNAPSHOTS : expands_to
+
+    SEASONS ||--o{ GAMES : schedules
+    SAVE_IMPORTS ||--o{ GAME_IMPORT_SNAPSHOTS : captures
+    GAMES ||--o{ GAME_IMPORT_SNAPSHOTS : snapshot_of
+    GAME_IMPORT_SNAPSHOTS ||--o| GAME_LINE_SCORES : has
+    GAME_IMPORT_SNAPSHOTS ||--o{ TEAM_GAME_STATS : has
+    GAME_IMPORT_SNAPSHOTS ||--o{ PLAYER_GAME_STAT_LINES : has
+    PLAYERS ||--o{ PLAYER_GAME_STAT_LINES : records
+    PLAYER_GAME_STAT_LINES ||--o{ PLAYER_GAME_STATS : expands_to
+    GAME_IMPORT_SNAPSHOTS ||--o{ SCORING_SUMMARY_EVENTS : has
 ```
 
 ## Entity vs. snapshot
 
-Field Index separates relatively stable identity from values that can change
-week to week.
+Field Index separates relatively stable identity from values that change over
+time. A player has one persistent dynasty identity, season relationships, and
+many import snapshots. The same pattern is used for teams, coaches, and games.
 
-Example:
+For games, the logical schedule slot is stable while participants/results are
+snapshotted because unplayed postseason slots can change:
 
 ```text
-players
-  Nicholas Example (persistent identity)
+games
+  2028 / BowlSeason1 / Week 17 / Game 3
        |
-       +-- player_seasons (2028 roster relationship)
-                 |
-                 +-- Week 1 import snapshot
-                 +-- Week 8 import snapshot
-                 +-- postseason import snapshot
+       +-- earlier import: unplayed matchup
+       +-- later import: final participants + score
 ```
-
-This prevents an import in Week 10 from erasing what the player's overall,
-team, abilities, or appearance looked like in Week 1.
 
 ## Multi-dynasty isolation
 
-`teams`, `players`, and `coaches` are scoped to `dynasty_id`. This is deliberate:
-custom/Team Builder data can make a raw game index mean different things in two
-different dynasties. Field Index does not assume every dynasty shares identical
-program/entity state.
+`teams`, `players`, and `coaches` are scoped to `dynasty_id`. Custom/Team Builder
+data can make a raw game index mean different things in two dynasties, so Field
+Index does not assume entity identity is globally shared.
 
-## Next ERD expansion
+## Analytics facts
 
-The next migration begins game storage and will connect games to dynasty seasons,
-teams, and later player/team game-stat facts. It is intentionally not included
-in this pre-game schema.
+Several JSON snapshots are retained for fidelity, then expanded into long-form
+facts for analysis:
+
+- player attributes
+- player abilities
+- team grades
+- coach stats
+- player game stats
+
+This makes common SQL and Power BI filtering/aggregation possible without
+requiring JSON extraction in every report.
+
+## Analytics and BI view layer
+
+Migration 006 leaves the normalized/raw tables in `public` and adds two read-only
+view schemas:
+
+```text
+public normalized storage
+   |
+   +--> analytics.import_context
+   |       |
+   |       +--> latest/best import selectors
+   |                |
+   |                +--> games
+   |                +--> team_games
+   |                +--> player_games
+   |                +--> scoring_events
+   |                |
+   |                +--> team/player/coach season snapshots
+   |                          |
+   |                          +--> player_seasons / player_careers
+   |                          +--> team offense / defense / rankings
+   |                          +--> conference_seasons
+   |                          +--> coach_seasons / coach_careers
+   |                          +--> transfer/history views
+   |
+   +--> import-by-import team/player/coach progression
+
+analytics curated views
+   |
+   +--> bi.dim_* dimensions
+   +--> bi.fact_* facts
+```
+
+The `analytics` layer resolves which save import should be used for each data
+purpose. Schedule/results use the newest season import; roster data uses the
+newest import for that roster season; team/player/scoring game facts use the
+richest retained checkpoint so later offseason cache clearing does not erase a
+completed season from reports.

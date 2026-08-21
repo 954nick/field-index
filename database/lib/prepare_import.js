@@ -1,6 +1,7 @@
-// -------------------- PRE-GAME DATABASE IMPORT MODEL --------------------
+// -------------------- DATABASE IMPORT MODEL --------------------
 
 import { buildCoachIdentityRecords, buildPlayerIdentityRecords } from "./identity.js";
+import { prepareGameStorage } from "./prepare_games.js";
 
 function assert(condition, message) {
     if (!condition) throw new Error(message);
@@ -40,7 +41,7 @@ function buildAssignedCoachByRow(coaching) {
     return assignedCoachByRow;
 }
 
-function preparePregameImport(fieldIndexData, source, options) {
+function preparePregameImport(fieldIndexData, source, options, gameAccess = {}) {
     const metadata = fieldIndexData.metadata ?? {};
 
     assert(metadata.gameType === "college", "Database import requires a college dynasty save");
@@ -100,6 +101,25 @@ function preparePregameImport(fieldIndexData, source, options) {
 
     const assignedFbsCoaches = coaches.filter(coach => teamIndexSet.has(coach.teamIndex));
 
+    const playerIdentityByRow = new Map(
+        players.map(player => [player.playerRow, player.identityKey])
+    );
+
+    const hasGameAccess =
+        Array.isArray(gameAccess.cleanPlayers) &&
+        typeof gameAccess.getTeamBoxScoreStats === "function" &&
+        typeof gameAccess.getGameScoringSummary === "function";
+
+    assert(hasGameAccess, "Game storage accessors are unavailable");
+
+    const gameStorage = prepareGameStorage({
+        schedule: fieldIndexData.schedule ?? [],
+        cleanPlayers: gameAccess.cleanPlayers,
+        playerIdentityByRow,
+        getTeamBoxScoreStats: gameAccess.getTeamBoxScoreStats,
+        getGameScoringSummary: gameAccess.getGameScoringSummary
+    });
+
     return {
         dynastyKey: options.dynastyKey,
         dynastyName: options.dynastyName,
@@ -110,6 +130,7 @@ function preparePregameImport(fieldIndexData, source, options) {
         conferenceByTeamIndex,
         players,
         coaches,
+        gameStorage,
         assignedFbsCoachCount: assignedFbsCoaches.length,
         summary: {
             teams: fieldIndexData.teams.length,
@@ -126,7 +147,15 @@ function preparePregameImport(fieldIndexData, source, options) {
             coachRowIdentities:
                 coaches.filter(coach => coach.identityStrategy === "coach_row").length,
             coachBioFallbackIdentities:
-                coaches.filter(coach => coach.identityStrategy === "bio_fingerprint").length
+                coaches.filter(coach => coach.identityStrategy === "bio_fingerprint").length,
+            games: gameStorage.summary.games,
+            completedGames: gameStorage.summary.completedGames,
+            unplayedGames: gameStorage.summary.unplayedGames,
+            gamesWithPlayerStats: gameStorage.summary.gamesWithPlayerStats,
+            teamBoxScoreRows: gameStorage.summary.teamBoxScoreRows,
+            playerGameStatLines: gameStorage.summary.playerStatLines,
+            playerGameStatFacts: gameStorage.summary.playerStatFacts,
+            scoringEvents: gameStorage.summary.scoringEvents
         }
     };
 }

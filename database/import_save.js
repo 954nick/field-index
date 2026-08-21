@@ -1,17 +1,42 @@
-// -------------------- FIELD INDEX PRE-GAME SAVE IMPORT --------------------
+// -------------------- FIELD INDEX SAVE IMPORT --------------------
 
 import crypto from "node:crypto";
+import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { buildPregameImportSql } from "./lib/build_import_sql.js";
+import v8 from "node:v8";
+import { buildFieldIndexImportSql } from "./lib/build_import_sql.js";
 import { preparePregameImport } from "./lib/prepare_import.js";
 import { runPsqlFile } from "./lib/psql.js";
 import { runMigrations } from "./migrate.js";
 
 const databaseDirectory = path.dirname(fileURLToPath(import.meta.url));
 const projectDirectory = path.dirname(databaseDirectory);
+
+function ensureImportHeapForCli() {
+    const heapLimit = v8.getHeapStatistics().heap_size_limit;
+    const targetBytes = 3.5 * 1024 * 1024 * 1024;
+
+    if (heapLimit >= targetBytes || process.env.FIELD_INDEX_IMPORT_HEAP === "1") {
+        return;
+    }
+
+    const result = spawnSync(
+        process.execPath,
+        ["--max-old-space-size=4096", ...process.argv.slice(1)],
+        {
+            stdio: "inherit",
+            env: {
+                ...process.env,
+                FIELD_INDEX_IMPORT_HEAP: "1"
+            }
+        }
+    );
+
+    process.exit(result.status ?? 1);
+}
 
 function parseArguments(argv) {
     const args = argv.slice(2);
@@ -92,12 +117,27 @@ async function buildModel(options) {
     // parser/index.js reads the save path from process.argv[2].
     process.argv[2] = savePath;
     const parserUrl = pathToFileURL(path.join(projectDirectory, "parser", "index.js")).href;
-    const { fieldIndexData } = await import(`${parserUrl}?import=${Date.now()}`);
+    const parserModule = await import(`${parserUrl}?import=${Date.now()}`);
+    const {
+        fieldIndexData,
+        cleanPlayers,
+        getTeamBoxScoreStats,
+        getGameScoringSummary
+    } = parserModule;
 
-    return preparePregameImport(fieldIndexData, source, {
-        dynastyKey: options.dynastyKey,
-        dynastyName: options.dynastyName
-    });
+    return preparePregameImport(
+        fieldIndexData,
+        source,
+        {
+            dynastyKey: options.dynastyKey,
+            dynastyName: options.dynastyName
+        },
+        {
+            cleanPlayers,
+            getTeamBoxScoreStats,
+            getGameScoringSummary
+        }
+    );
 }
 
 function printSummary(model, options) {
@@ -132,7 +172,12 @@ function printSummary(model, options) {
         `${model.summary.coachBioFallbackIdentities} bio fallback`
     );
     console.log(`Save SHA-256: ${model.source.fileHash}`);
-    console.log("Game storage: intentionally not implemented in this stage");
+    console.log(`Games: ${model.summary.games} (${model.summary.completedGames} final / ${model.summary.unplayedGames} unplayed)`);
+    console.log(`Games with player stats: ${model.summary.gamesWithPlayerStats}`);
+    console.log(`Team box-score rows: ${model.summary.teamBoxScoreRows}`);
+    console.log(`Player game stat lines: ${model.summary.playerGameStatLines}`);
+    console.log(`Normalized player game facts: ${model.summary.playerGameStatFacts}`);
+    console.log(`Scoring events: ${model.summary.scoringEvents}`);
     if (options.dryRun) console.log("Mode: DRY RUN (PostgreSQL was not modified)");
 }
 
@@ -142,7 +187,7 @@ async function importSave(options) {
     }
 
     const model = await buildModel(options);
-    const sql = buildPregameImportSql(model);
+    const sql = buildFieldIndexImportSql(model);
 
     printSummary(model, options);
 
@@ -169,11 +214,12 @@ async function importSave(options) {
         fs.rmSync(temporarySqlPath, { force: true });
     }
 
-    console.log("Pre-game Field Index data imported successfully");
+    console.log("Field Index data including game storage imported successfully");
     return { model, sql, executed: true };
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+    ensureImportHeapForCli();
     try {
         const options = parseArguments(process.argv);
         await importSave(options);

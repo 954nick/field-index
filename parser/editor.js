@@ -5,9 +5,12 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { TABLE_IDS } from "./table_ids.js";
 import { ensureCoachTableSchema } from "./coach_schema_compat.js";
+import { writeCfb27DynastySave } from "./cfb27_safe_writer.js";
+import { getPlayerHeadProfile, applyPlayerHeadProfilePreserveGear } from "./character_visuals.js";
 
 const DEFAULT_SCHEMA_DIRECTORY = fileURLToPath(new URL("./schemas/", import.meta.url));
 const ZERO_REFERENCE = "0".repeat(32);
+const MAX_CFB27_SAVE_FILENAME_LENGTH = 31;
 
 const PLAYER_APPEARANCE_FIELDS = [
     "PLYR_ASSETNAME",
@@ -1050,6 +1053,72 @@ export class FieldIndexEditor {
         return applied;
     }
 
+    async getPlayerHeadProfile(playerRow) {
+        const record = this.#playerRecord(playerRow);
+        return getPlayerHeadProfile(this.franchise, record);
+    }
+
+    async setPlayerHeadId(playerRow, headProfile) {
+        const record = this.#playerRecord(playerRow);
+        const requiredFields = ["PLYR_ASSETNAME", "GenericHeadAssetName", "PLYR_PORTRAIT"];
+        const profileValues = {
+            PLYR_ASSETNAME: headProfile?.assetName,
+            GenericHeadAssetName: headProfile?.genericHeadAssetName,
+            PLYR_PORTRAIT: headProfile?.portrait
+        };
+
+        for (const fieldName of requiredFields) {
+            if (profileValues[fieldName] === undefined || profileValues[fieldName] === null) {
+                throw new Error(`Head profile is missing ${fieldName}`);
+            }
+        }
+
+        const applied = [];
+        for (const [fieldName, requestedValue] of Object.entries(profileValues)) {
+            const before = record[fieldName];
+            record[fieldName] = validateFieldValue(record, fieldName, requestedValue);
+            applied.push({ field: fieldName, before, after: record[fieldName] });
+        }
+
+        const visuals = await applyPlayerHeadProfilePreserveGear(
+            this.franchise,
+            record,
+            headProfile
+        );
+
+        applied.push({
+            field: "CharacterVisuals.Head",
+            before: { plusHeadCount: visuals.plusHeadBefore },
+            after: {
+                plusHeadCount: visuals.plusHeadAfter,
+                skinTone: headProfile.skinTone
+            },
+            preservesGear: true
+        });
+
+        this.changeLog.push({
+            type: "playerHeadId",
+            playerRow,
+            sourcePlayerRow: headProfile.sourcePlayerRow ?? null,
+            sourcePlayerName: headProfile.sourcePlayerName ?? null,
+            changes: applied
+        });
+
+        return {
+            playerRow,
+            sourcePlayerRow: headProfile.sourcePlayerRow ?? null,
+            sourcePlayerName: headProfile.sourcePlayerName ?? null,
+            changes: applied,
+            characterVisuals: visuals
+        };
+    }
+
+    async copyPlayerHeadId(playerRow, donorPlayerRow) {
+        const donorRecord = this.#playerRecord(donorPlayerRow);
+        const profile = await getPlayerHeadProfile(this.franchise, donorRecord);
+        return this.setPlayerHeadId(playerRow, profile);
+    }
+
     editCoach(coachRow, changes = {}) {
         const record = this.#coachRecord(coachRow);
         const applied = [];
@@ -1508,6 +1577,9 @@ export class FieldIndexEditor {
             coachTalentTreeEditing: true,
             coachTalentNodeStatusEditing: true,
             playerScalarAppearanceEditing: PLAYER_APPEARANCE_FIELDS.every(field => !samplePlayer || Boolean(samplePlayer.getFieldByKey(field))),
+            playerHeadIdEditing: true,
+            playerHeadIdPreservesGear: true,
+            characterVisualsHeadEditing: true,
             coachScalarAppearanceEditing: COACH_APPEARANCE_FIELDS.every(field => !sampleCoach || Boolean(sampleCoach.getFieldByKey(field))),
             characterVisualsBlobEditing: false,
             equipmentEditing: false,
@@ -1520,7 +1592,8 @@ export class FieldIndexEditor {
             cfpBracketParticipantEditing: true,
             cfpCompletedGameEditing: false,
             automaticBackups: true,
-            roundTripVerification: true
+            roundTripVerification: true,
+            cfb27SafeWriter: true
         };
     }
 
@@ -1530,13 +1603,20 @@ export class FieldIndexEditor {
         const overwriteOriginal = outputPath === inputPath;
         let backupPath = null;
 
+        if (!overwriteOriginal && path.basename(outputPath).length > MAX_CFB27_SAVE_FILENAME_LENGTH) {
+            throw new Error(
+                `CFB27 save filename must be ${MAX_CFB27_SAVE_FILENAME_LENGTH} characters or fewer. `
+                + `Use a shorter output name than ${path.basename(outputPath)}.`
+            );
+        }
+
         if (overwriteOriginal) {
             if (options.createBackup === false) {
                 throw new Error("Overwriting the original save requires a backup");
             }
             const backupDirectory = options.backupDirectory
                 ? path.resolve(options.backupDirectory)
-                : path.dirname(inputPath);
+                : path.join(path.dirname(inputPath), "FieldIndexBackups");
             fs.mkdirSync(backupDirectory, { recursive: true });
             backupPath = path.join(
                 backupDirectory,
@@ -1547,7 +1627,11 @@ export class FieldIndexEditor {
             fs.mkdirSync(path.dirname(outputPath), { recursive: true });
         }
 
-        await this.franchise.save(outputPath);
+        const safeWrite = writeCfb27DynastySave({
+            franchise: this.franchise,
+            sourcePath: inputPath,
+            outputPath
+        });
 
         let verification = null;
         if (options.verify !== false) {
@@ -1568,6 +1652,7 @@ export class FieldIndexEditor {
             backupPath,
             changeCount: this.changeLog.reduce((sum, entry) => sum + (entry.changes?.length ?? 1), 0),
             changeLog: copyJson(this.changeLog),
+            safeWrite,
             verification
         };
     }

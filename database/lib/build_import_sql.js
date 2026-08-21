@@ -1,4 +1,4 @@
-// -------------------- PRE-GAME POSTGRESQL IMPORT SQL --------------------
+// -------------------- FIELD INDEX POSTGRESQL IMPORT SQL --------------------
 
 import {
     chunk,
@@ -8,6 +8,8 @@ import {
     sqlText,
     sqlTimestamp
 } from "./sql.js";
+
+import { buildGameImportSql } from "./build_game_import_sql.js";
 
 function valuesBlock(rows, rowBuilder) {
     return rows.map(row => `(${rowBuilder(row).join(", ")})`).join(",\n        ");
@@ -1117,12 +1119,12 @@ WHERE stat_value_text ~ '^-?[0-9]+([.][0-9]+)?$';
 `;
 }
 
-function buildPregameImportSql(model, options = {}) {
+function buildFieldIndexImportSql(model, options = {}) {
     const playerBatchSize = options.playerBatchSize ?? 500;
     const coachBatchSize = options.coachBatchSize ?? 250;
 
     const sections = [
-        "-- -------------------- FIELD INDEX PRE-GAME DATABASE IMPORT --------------------\n",
+        "-- -------------------- FIELD INDEX DATABASE IMPORT --------------------\n",
         "\\set ON_ERROR_STOP on\n",
         "BEGIN;\n",
         buildDynastySeasonImportSql(model),
@@ -1138,10 +1140,15 @@ function buildPregameImportSql(model, options = {}) {
     });
 
     sections.push(buildAnalyticsNormalizationSql(model));
+    sections.push(buildGameImportSql(model, options));
     sections.push("\nCOMMIT;\n");
     return sections.join("\n");
 }
 
+// Backward-compatible alias for code that imported the pre-game name.
+const buildPregameImportSql = buildFieldIndexImportSql;
+
 export {
+    buildFieldIndexImportSql,
     buildPregameImportSql
 };

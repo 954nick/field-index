@@ -4,7 +4,7 @@
   "description": "CFB27 Dynasty read/edit backend for Field Index",
   "type": "module",
   "scripts": {
-    "check": "node --check index.js && node --check editor.js && node --check coach_schema_compat.js && node --check table_ids.js",
+    "check": "node --check index.js && node --check editor.js && node --check character_visuals.js && node --check cfb27_safe_writer.js && node --check coach_schema_compat.js && node --check table_ids.js",
     "read": "node index.js",
     "db:migrate": "node ../database/migrate.js",
     "db:import": "node ../database/import_save.js",
