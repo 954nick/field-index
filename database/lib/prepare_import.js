@@ -2,6 +2,7 @@
 
 import { buildCoachIdentityRecords, buildPlayerIdentityRecords } from "./identity.js";
 import { prepareGameStorage } from "./prepare_games.js";
+import { prepareExtendedHistory } from "./prepare_extended.js";
 
 function assert(condition, message) {
     if (!condition) throw new Error(message);
@@ -120,6 +121,8 @@ function preparePregameImport(fieldIndexData, source, options, gameAccess = {}) 
         getGameScoringSummary: gameAccess.getGameScoringSummary
     });
 
+    const extendedHistory = prepareExtendedHistory(fieldIndexData, players, coaches);
+
     return {
         dynastyKey: options.dynastyKey,
         dynastyName: options.dynastyName,
@@ -131,6 +134,7 @@ function preparePregameImport(fieldIndexData, source, options, gameAccess = {}) 
         players,
         coaches,
         gameStorage,
+        extendedHistory,
         assignedFbsCoachCount: assignedFbsCoaches.length,
         summary: {
             teams: fieldIndexData.teams.length,
@@ -155,7 +159,15 @@ function preparePregameImport(fieldIndexData, source, options, gameAccess = {}) 
             teamBoxScoreRows: gameStorage.summary.teamBoxScoreRows,
             playerGameStatLines: gameStorage.summary.playerStatLines,
             playerGameStatFacts: gameStorage.summary.playerStatFacts,
-            scoringEvents: gameStorage.summary.scoringEvents
+            scoringEvents: gameStorage.summary.scoringEvents,
+            rankingSnapshots: extendedHistory.rankings.length,
+            recruitingProspects: extendedHistory.recruiting.prospects.length,
+            recruitingBoardTargets: extendedHistory.recruiting.interests.length,
+            recruitingClassRankedTeams: fieldIndexData.teams.filter(team => Number.isInteger(team.recruitingClassRank)).length,
+            depthChartSlots: extendedHistory.depthCharts.length,
+            awardSnapshots: extendedHistory.awards.length,
+            coachTalentTrees: extendedHistory.coachTalents.trees.length,
+            coachTalentNodes: extendedHistory.coachTalents.nodes.length
         }
     };
 }

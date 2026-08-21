@@ -10,6 +10,7 @@ const FBCHUNKS_MAGIC = Buffer.from("FBCHUNKS", "ascii");
 const COMPRESSED_DATA_OFFSET = 0x52;
 const COMPRESSED_SIZE_OFFSET = 0x4a;
 const EA_ZLIB_LEVEL = 6;
+const EDITED_ZLIB_LEVELS = [6, 7, 8, 9];
 const HELPER_PATH = fileURLToPath(new URL("./classic_zlib_compress.py", import.meta.url));
 
 function assertCfb27DynastyContainer(original) {
@@ -51,7 +52,7 @@ function pythonCandidates() {
     return candidates;
 }
 
-function compressWithClassicZlib(unpackedContents) {
+function compressWithClassicZlib(unpackedContents, level = EA_ZLIB_LEVEL) {
     const temporaryDirectory = fs.mkdtempSync(path.join(os.tmpdir(), "field-index-classic-zlib-"));
     const inputPath = path.join(temporaryDirectory, "chunk1-unpacked.bin");
     const outputPath = path.join(temporaryDirectory, "chunk1.zlib");
@@ -62,7 +63,7 @@ function compressWithClassicZlib(unpackedContents) {
         for (const candidate of pythonCandidates()) {
             const result = spawnSync(
                 candidate.command,
-                [...candidate.prefix, HELPER_PATH, inputPath, outputPath, "--level", String(EA_ZLIB_LEVEL)],
+                [...candidate.prefix, HELPER_PATH, inputPath, outputPath, "--level", String(level)],
                 { encoding: "utf8", windowsHide: true }
             );
 
@@ -94,7 +95,7 @@ function verifySourceCompressionProfile(original, originalCompressedSize) {
         COMPRESSED_DATA_OFFSET + originalCompressedSize
     );
     const originalUnpacked = zlib.inflateSync(originalStream);
-    const result = compressWithClassicZlib(originalUnpacked);
+    const result = compressWithClassicZlib(originalUnpacked, EA_ZLIB_LEVEL);
 
     if (!result.compressed.equals(originalStream)) {
         throw new Error(
@@ -108,6 +109,35 @@ function verifySourceCompressionProfile(original, originalCompressedSize) {
         sourceUnpackedSize: originalUnpacked.length,
         compressorDetail: result.detail
     };
+}
+
+export function compressEditedChunkToFit(unpackedContents, slotCapacity, compressor = compressWithClassicZlib) {
+    const attempts = [];
+
+    for (const level of EDITED_ZLIB_LEVELS) {
+        const result = compressor(unpackedContents, level);
+        const attempt = {
+            level,
+            size: result.compressed.length,
+            detail: result.detail
+        };
+        attempts.push(attempt);
+
+        if (result.compressed.length <= slotCapacity) {
+            return {
+                compressed: result.compressed,
+                detail: result.detail,
+                level,
+                attempts
+            };
+        }
+    }
+
+    const summary = attempts.map(attempt => `level ${attempt.level}=${attempt.size}`).join(", ");
+    throw new Error(
+        `CFB27 safe writer refused to write: edited chunk 1 does not fit the ${slotCapacity}-byte slot `
+        + `at any supported classic-zlib level (${summary}). The preserved tail was not touched.`
+    );
 }
 
 function buildUpdatedUnpackedContents(franchise) {
@@ -173,19 +203,17 @@ export function writeCfb27DynastySave({ franchise, sourcePath, outputPath }) {
     const sourceProfile = verifySourceCompressionProfile(original, originalCompressedSize);
 
     const updatedUnpackedContents = buildUpdatedUnpackedContents(franchise);
-    const compression = compressWithClassicZlib(updatedUnpackedContents);
+    // EA-authored source compatibility is always proven at level 6 above. For an
+    // edited stream, zlib levels 7-9 are valid format-compatible fallbacks when
+    // level 6 grows by a few bytes and would otherwise collide with the preserved
+    // FBCHUNKS tail. Choose the lowest level that fits so normal writes remain
+    // level 6 whenever possible.
+    const compression = compressEditedChunkToFit(updatedUnpackedContents, slotCapacity);
     const compressed = compression.compressed;
 
     const reinflated = zlib.inflateSync(compressed);
     if (!reinflated.equals(updatedUnpackedContents)) {
         throw new Error("CFB27 safe writer compression verification failed");
-    }
-
-    if (compressed.length > slotCapacity) {
-        throw new Error(
-            `CFB27 safe writer refused to write: compressed chunk 1 is ${compressed.length} bytes, `
-            + `but the original slot can hold only ${slotCapacity} bytes. The preserved tail was not touched.`
-        );
     }
 
     const output = Buffer.from(original);
@@ -213,7 +241,13 @@ export function writeCfb27DynastySave({ franchise, sourcePath, outputPath }) {
         preservedTailOffset: slotEnd,
         preservedTailBytes: original.length - slotEnd,
         compression: "classic-zlib",
-        zlibLevel: EA_ZLIB_LEVEL,
+        zlibLevel: compression.level,
+        compressionFallbackUsed: compression.level !== EA_ZLIB_LEVEL,
+        compressionAttempts: compression.attempts.map(attempt => ({
+            level: attempt.level,
+            size: attempt.size
+        })),
+        sourceProfileLevel: EA_ZLIB_LEVEL,
         sourceProfileVerified: true,
         sourceUnpackedSize: sourceProfile.sourceUnpackedSize,
         compressorDetail: compression.detail

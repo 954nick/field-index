@@ -5,9 +5,11 @@ import path from "node:path";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { IsonProcessor } from "madden-franchise";
+import { detectHeadIdentity } from "./head_catalog.js";
 
 const PARSER_DIRECTORY = path.dirname(fileURLToPath(import.meta.url));
 const CODEC_PATH = path.join(PARSER_DIRECTORY, "character_visuals_codec.py");
+const BULK_CODEC_PATH = path.join(PARSER_DIRECTORY, "character_visuals_bulk_codec.py");
 const DICTIONARY_PATH = path.join(
     PARSER_DIRECTORY,
     "node_modules",
@@ -84,6 +86,93 @@ function runCodec(mode, inputBuffer) {
 
     throw new Error(
         "CharacterVisuals codec failed. Install Python package `zstandard` if a system libzstd "
+        + `is unavailable. Attempts: ${failures.join(" | ")}`
+    );
+}
+
+function packBufferBundle(buffers) {
+    const chunks = [Buffer.alloc(4)];
+    chunks[0].writeUInt32LE(buffers.length, 0);
+    for (const buffer of buffers) {
+        const size = Buffer.alloc(4);
+        size.writeUInt32LE(buffer.length, 0);
+        chunks.push(size, buffer);
+    }
+    return Buffer.concat(chunks);
+}
+
+function unpackBufferBundle(buffer) {
+    if (buffer.length < 4) throw new Error("Bulk CharacterVisuals output is truncated");
+    const count = buffer.readUInt32LE(0);
+    let offset = 4;
+    const output = [];
+    for (let index = 0; index < count; index += 1) {
+        if (offset + 4 > buffer.length) {
+            throw new Error("Bulk CharacterVisuals output length table is truncated");
+        }
+        const length = buffer.readUInt32LE(offset);
+        offset += 4;
+        const end = offset + length;
+        if (end > buffer.length) throw new Error("Bulk CharacterVisuals output frame is truncated");
+        output.push(buffer.subarray(offset, end));
+        offset = end;
+    }
+    if (offset !== buffer.length) throw new Error("Bulk CharacterVisuals output has trailing bytes");
+    return output;
+}
+
+function runBulkDecode(frames) {
+    if (!Array.isArray(frames) || frames.length === 0) return { buffers: [], detail: "empty batch" };
+    if (!fs.existsSync(BULK_CODEC_PATH)) {
+        throw new Error(`Bulk CharacterVisuals codec is missing: ${BULK_CODEC_PATH}`);
+    }
+    if (!fs.existsSync(DICTIONARY_PATH)) {
+        throw new Error(`CFB27 CharacterVisuals dictionary is missing: ${DICTIONARY_PATH}`);
+    }
+
+    const temporaryDirectory = fs.mkdtempSync(path.join(os.tmpdir(), "field-index-visuals-bulk-"));
+    const inputPath = path.join(temporaryDirectory, "input.bundle");
+    const outputPath = path.join(temporaryDirectory, "output.bundle");
+    fs.writeFileSync(inputPath, packBufferBundle(frames));
+
+    const failures = [];
+    try {
+        for (const candidate of pythonCandidates()) {
+            const result = spawnSync(
+                candidate.command,
+                [
+                    ...candidate.prefix,
+                    BULK_CODEC_PATH,
+                    inputPath,
+                    DICTIONARY_PATH,
+                    outputPath
+                ],
+                { encoding: "utf8", windowsHide: true }
+            );
+
+            if (!result.error && result.status === 0 && fs.existsSync(outputPath)) {
+                const buffers = unpackBufferBundle(fs.readFileSync(outputPath));
+                if (buffers.length !== frames.length) {
+                    throw new Error(
+                        `Bulk CharacterVisuals codec returned ${buffers.length} frame(s) for ${frames.length} input frame(s)`
+                    );
+                }
+                return {
+                    buffers,
+                    detail: result.stdout.trim()
+                };
+            }
+
+            failures.push(
+                `${candidate.command}: ${result.error?.message ?? result.stderr?.trim() ?? `exit ${result.status}`}`
+            );
+        }
+    } finally {
+        fs.rmSync(temporaryDirectory, { recursive: true, force: true });
+    }
+
+    throw new Error(
+        "Bulk CharacterVisuals codec failed. Install Python package `zstandard` if a system libzstd "
         + `is unavailable. Attempts: ${failures.join(" | ")}`
     );
 }
@@ -176,23 +265,137 @@ function plusHeadElements(loadout) {
     return (loadout?.loadoutElements ?? []).filter(element => element?.slotType === "PlusHead");
 }
 
+function defaultHeadLayerElements() {
+    return [
+        {
+            blends: [{}],
+            itemInstanceTag: "Head_SkinDetails_None",
+            itemAssetName: "Head_SkinDetails_None",
+            slotType: "FaceTexture",
+            transforms: [{}]
+        },
+        {
+            blends: [{}],
+            itemInstanceTag: "NeckTattoo_None",
+            itemAssetName: "NeckTattoo_None",
+            slotType: "NeckTattoo",
+            transforms: [{}]
+        }
+    ];
+}
+
+function ensureHeadLoadout(appearance) {
+    let head = headLoadout(appearance);
+    if (head) return { head, created: false };
+
+    if (!Array.isArray(appearance.loadouts)) appearance.loadouts = [];
+    head = {
+        loadoutCategory: "Head",
+        loadoutType: "Head",
+        loadoutElements: defaultHeadLayerElements()
+    };
+    appearance.loadouts.unshift(head);
+    return { head, created: true };
+}
+
+// -------------------- HEAD LAYER MUTATION --------------------
+export function applyHeadProfileToAppearanceJson(appearance, profile) {
+    if (!appearance || typeof appearance !== "object") {
+        throw new Error("A valid CharacterVisuals appearance object is required");
+    }
+    if (!profile || typeof profile !== "object") {
+        throw new Error("A valid player head profile is required");
+    }
+    if (profile.skinTone === null || profile.skinTone === undefined) {
+        throw new Error("Head profile is missing required skin tone state");
+    }
+
+    const updated = clone(appearance);
+    const ensured = ensureHeadLoadout(updated);
+    const head = ensured.head;
+
+    const plusHeadBefore = plusHeadElements(head).length;
+    head.loadoutElements = (head.loadoutElements ?? [])
+        .filter(element => element?.slotType !== "PlusHead");
+
+    const requestedPlusHead = clone(profile.plusHeadElements ?? []);
+    if (!Array.isArray(requestedPlusHead)) {
+        throw new Error("Head profile PlusHead state must be an array");
+    }
+    if (requestedPlusHead.length > 0) {
+        head.loadoutElements.unshift(...requestedPlusHead);
+    }
+
+    updated.skinTone = clone(profile.skinTone);
+
+    return {
+        appearance: updated,
+        plusHeadBefore,
+        plusHeadAfter: requestedPlusHead.length,
+        headLoadoutCreated: ensured.created
+    };
+}
+
 export async function getPlayerHeadProfile(franchise, playerRecord) {
     const context = await visualContext(franchise, playerRecord);
     const decoded = decodeAppearance(context);
     const head = headLoadout(decoded.json);
-    if (!head) {
-        throw new Error(`${playerRecord.FirstName} ${playerRecord.LastName} has no CharacterVisuals Head loadout`);
-    }
 
+    const identity = detectHeadIdentity(playerRecord);
     return {
+        headId: identity.headId,
+        headType: identity.headType,
+        canonicalKey: identity.canonicalKey,
         assetName: playerRecord.PLYR_ASSETNAME,
         genericHeadAssetName: playerRecord.GenericHeadAssetName,
         portrait: playerRecord.PLYR_PORTRAIT,
-        skinTone: decoded.json.skinTone,
+        skinTone: clone(decoded.json.skinTone),
         plusHeadElements: clone(plusHeadElements(head)),
+        hasHeadLoadout: Boolean(head),
         sourcePlayerRow: playerRecord.index ?? null,
         sourcePlayerName: `${playerRecord.FirstName} ${playerRecord.LastName}`.trim()
     };
+}
+
+export async function getPlayerHeadProfilesBatch(franchise, playerRecords) {
+    if (!Array.isArray(playerRecords)) {
+        throw new Error("Player records must be provided as an array");
+    }
+    if (playerRecords.length === 0) return [];
+
+    const items = [];
+    for (const playerRecord of playerRecords) {
+        const context = await visualContext(franchise, playerRecord);
+        const frame = compressedFrameFromVisual(context);
+        items.push({ playerRecord, context, frame });
+    }
+
+    const decoded = runBulkDecode(items.map(item => item.frame));
+    return decoded.buffers.map((buffer, index) => {
+        const item = items[index];
+        const json = ISON.isonVisualsToJson(buffer);
+        if (!json || typeof json !== "object") {
+            throw new Error(
+                `CharacterVisuals ISON did not decode to an object for player row ${item.playerRecord.index}`
+            );
+        }
+        const head = headLoadout(json);
+        const identity = detectHeadIdentity(item.playerRecord);
+        return {
+            headId: identity.headId,
+            headType: identity.headType,
+            canonicalKey: identity.canonicalKey,
+            assetName: item.playerRecord.PLYR_ASSETNAME,
+            genericHeadAssetName: item.playerRecord.GenericHeadAssetName,
+            portrait: item.playerRecord.PLYR_PORTRAIT,
+            skinTone: clone(json.skinTone),
+            plusHeadElements: clone(plusHeadElements(head)),
+            hasHeadLoadout: Boolean(head),
+            sourcePlayerRow: item.playerRecord.index ?? null,
+            sourcePlayerName: `${item.playerRecord.FirstName} ${item.playerRecord.LastName}`.trim(),
+            bulkDecodeCodec: decoded.detail
+        };
+    });
 }
 
 export async function applyPlayerHeadProfilePreserveGear(franchise, playerRecord, profile) {
@@ -202,29 +405,16 @@ export async function applyPlayerHeadProfilePreserveGear(franchise, playerRecord
 
     const context = await visualContext(franchise, playerRecord);
     const decoded = decodeAppearance(context);
-    const head = headLoadout(decoded.json);
-    if (!head) {
-        throw new Error(`${playerRecord.FirstName} ${playerRecord.LastName} has no CharacterVisuals Head loadout`);
-    }
+    const mutation = applyHeadProfileToAppearanceJson(decoded.json, profile);
 
-    const plusHeadBefore = plusHeadElements(head).length;
-    head.loadoutElements = (head.loadoutElements ?? [])
-        .filter(element => element?.slotType !== "PlusHead");
-
-    const donorPlusHead = clone(profile.plusHeadElements ?? []);
-    if (donorPlusHead.length > 0) {
-        head.loadoutElements.unshift(...donorPlusHead);
-    }
-
-    decoded.json.skinTone = profile.skinTone;
-
-    const encoded = encodeAppearance(decoded.json);
+    const encoded = encodeAppearance(mutation.appearance);
     writeCompressedFrame(context, encoded.frame);
 
     return {
         characterVisualsRow: context.reference.rowNumber,
-        plusHeadBefore,
-        plusHeadAfter: donorPlusHead.length,
+        plusHeadBefore: mutation.plusHeadBefore,
+        plusHeadAfter: mutation.plusHeadAfter,
+        headLoadoutCreated: mutation.headLoadoutCreated,
         originalFrameLength: decoded.frameLength,
         newFrameLength: encoded.frame.length,
         decodeCodec: decoded.codec,

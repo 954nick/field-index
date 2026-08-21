@@ -3,6 +3,9 @@ import Franchise from "madden-franchise";
 import { fileURLToPath } from "node:url";
 import { TABLE_IDS } from "./table_ids.js"
 import { ensureCoachTableSchema } from "./coach_schema_compat.js";
+import { detectHeadIdentity } from "./head_catalog.js";
+import { buildCoachTalentCatalog, enrichCoachTalentTreeSnapshot } from "./coach_talents.js";
+import { evaluateRedshirtConsistency, getCurrentSeasonGamesPlayed } from "./redshirt_consistency.js";
 import {
     PLAYER_APPEARANCE_FIELDS,
     COACH_APPEARANCE_FIELDS,
@@ -11,11 +14,14 @@ import {
     PLAYER_MENTAL_ABILITY_RANK_FIELDS,
     COACH_TALENT_TREE_NAMES,
     TEAM_GRADE_FIELDS,
-    MY_SCHOOL_GRADE_FIELDS
+    MY_SCHOOL_GRADE_FIELDS,
+    MY_SCHOOL_DISPLAY_GRADE_ALIASES
 } from "./editor.js";
 
-// CFB27 Dynasty Configuration
+// -------------------- CFB27 DYNASTY CONFIGURATION --------------------
 const dynastyStartYear = 2026;
+const parserModuleUrl = new URL(import.meta.url);
+const quietLibraryLoad = parserModuleUrl.searchParams.has("fieldIndexSession");
 
 // Locate Custom Schema Directory
 const schemaDirectory = fileURLToPath(
@@ -26,29 +32,27 @@ const schemaDirectory = fileURLToPath(
 const savePath = process.argv[2];
 
 // Validate Save-File Path
-if(!savePath) {
-    console.error("No save-file path provided");
-    process.exit(1);
+if (!savePath) {
+    throw new Error("No save-file path provided");
 }
 
 // Load Dynasty Save
 const franchise = await Franchise.create(savePath, {
     schemaDirectory: schemaDirectory
 });
-// Display Loaded Schema Metadata
-console.log(franchise.schema.meta);
-
-// Display Save Metadata
-console.log(franchise.gameType);
-console.log(franchise.gameYear);
+// Display Save Metadata for direct/diagnostic parser runs only.
+if (!quietLibraryLoad) {
+    console.log(franchise.schema.meta);
+    console.log(franchise.gameType);
+    console.log(franchise.gameYear);
+}
 
 // Validate Save Metadata 
 
-if (franchise.gameType !== "college" || franchise.gameYear !== 27) { 
-    console.error("Field Index requires a valid CFB27 Dynasty save");
-    process.exit(1);
+if (franchise.gameType !== "college" || franchise.gameYear !== 27) {
+    throw new Error("Field Index requires a valid CFB27 Dynasty save");
 }
-console.log("Dynasty save loaded successfully");
+if (!quietLibraryLoad) console.log("Dynasty save loaded successfully");
 
 // Read Table Helper 
 async function readTable(tableID) {
@@ -1815,12 +1819,50 @@ function getTeamGradeSnapshot(teamRecord) {
         }
     }
 
+    const displayGrades = { ...programPointGrades };
+    for (const [alias, fieldName] of Object.entries(MY_SCHOOL_DISPLAY_GRADE_ALIASES)) {
+        if (Object.hasOwn(mySchoolGrades, fieldName)) displayGrades[alias] = mySchoolGrades[fieldName];
+    }
+
     return {
-        // Legacy alias retained for current consumers.
-        grades: programPointGrades,
+        // Display alias prefers game-verified My School grade authorities.
+        grades: displayGrades,
         programPointGrades,
         mySchoolGrades,
         playingStyleGrades
+    };
+}
+
+function clampColorChannel(value) {
+    const number = Number(value);
+    if (!Number.isFinite(number)) return 0;
+    return Math.max(0, Math.min(255, Math.round(number)));
+}
+
+function rgbToHex(red, green, blue) {
+    return `#${[red, green, blue]
+        .map(clampColorChannel)
+        .map(channel => channel.toString(16).padStart(2, "0"))
+        .join("")
+        .toUpperCase()}`;
+}
+
+function getTeamColors(teamRecord) {
+    const primary = {
+        red: clampColorChannel(teamRecord.TEAM_BACKGROUNDCOLORR),
+        green: clampColorChannel(teamRecord.TEAM_BACKGROUNDCOLORG),
+        blue: clampColorChannel(teamRecord.TEAM_BACKGROUNDCOLORB)
+    };
+    const secondary = {
+        red: clampColorChannel(teamRecord.TEAM_BACKGROUNDCOLORR2),
+        green: clampColorChannel(teamRecord.TEAM_BACKGROUNDCOLORG2),
+        blue: clampColorChannel(teamRecord.TEAM_BACKGROUNDCOLORB2)
+    };
+
+    return {
+        primary: { ...primary, hex: rgbToHex(primary.red, primary.green, primary.blue) },
+        secondary: { ...secondary, hex: rgbToHex(secondary.red, secondary.green, secondary.blue) },
+        hasSecondary: Boolean(teamRecord.TEAM_HAS_SECONDARY_COLOR)
     };
 }
 
@@ -1840,6 +1882,7 @@ function getTeamSummary(teamRecord) {
             teamRecord.ShortName ||
             teamRecord.TEAM_PREFIX_NAME ||
             teamRecord.DisplayName,
+        colors: getTeamColors(teamRecord),
         prestige: teamRecord.TeamPrestige,
         overallRating: teamRecord.TEAM_RATINGOVR,
         offensiveRating: teamRecord.TEAM_RATINGOFF,
@@ -1850,6 +1893,10 @@ function getTeamSummary(teamRecord) {
         playingStyleGrades: gradeSnapshot.playingStyleGrades,
         teamRank: teamRecord.TeamRank,
         conferenceStanding: teamRecord.CurSeasonConfStanding,
+        recruitingClassRank: teamRecord.TopClassRank ?? null,
+        recruitingClassConferenceRank: teamRecord.TopClassConferenceRank ?? null,
+        recruitProgramPointsSpent: teamRecord.RecruitProgramPointsSpent ?? 0,
+        lastWeekCommittedRecruits: teamRecord.LastWeekCommittedRecruits ?? 0,
         wins: (teamRecord.ConfWin ?? 0) + (teamRecord.NonConfWin ?? 0),
         losses: (teamRecord.ConfLoss ?? 0) + (teamRecord.NonConfLoss ?? 0),
         conferenceWins: teamRecord.ConfWin ?? 0,
@@ -2250,6 +2297,10 @@ async function buildCoachData(teamRecord, coachRecord, role) {
         jobSecurityStatus: coachRecord.CurrentJobSecurityStatus,
         jobSecurityPercentage: coachRecord.CurrentJobSecurityPercentage,
         isUserControlled: coachRecord.IsUserControlled,
+        talentTree: enrichCoachTalentTreeSnapshot(
+            await getCoachTalentTreeSnapshot(coachRecord),
+            coachTalentCatalog
+        ),
         appearance: getScalarAppearanceSnapshot(
             coachRecord,
             COACH_APPEARANCE_FIELDS
@@ -2294,7 +2345,7 @@ async function buildCoachData(teamRecord, coachRecord, role) {
     };
 }
 
-function buildAllCoachData() {
+async function buildAllCoachData(coachTalentCatalog) {
     const coachRecords = coachTable.records.filter(coachRecord =>
         !coachRecord.isEmpty &&
         coachRecord.FirstName &&
@@ -2302,7 +2353,13 @@ function buildAllCoachData() {
         coachRecord.Position !== "NumCollegeCoaches"
     );
 
-    return coachRecords.map(coachRecord => ({
+    const coaches = [];
+    for (const coachRecord of coachRecords) {
+        const talentTree = enrichCoachTalentTreeSnapshot(
+            await getCoachTalentTreeSnapshot(coachRecord),
+            coachTalentCatalog
+        );
+        coaches.push({
             coachRow: coachRecord.index,
             firstName: coachRecord.FirstName,
             lastName: coachRecord.LastName,
@@ -2332,18 +2389,30 @@ function buildAllCoachData() {
             coachPoints: coachRecord.CoachPoints ?? 0,
             experiencePoints: coachRecord.ExperiencePoints ?? 0,
             specialty: coachRecord.COACH_SPECIALTY,
+            specialtyType: coachRecord.SpecialtyType ?? null,
             dominantArchetype: coachRecord.DominantArchetype,
             almaMater: coachRecord.AlmaMater,
             contractStatus: coachRecord.ContractStatus,
+            contractLength: coachRecord.ContractLength ?? null,
+            contractSalary: coachRecord.ContractSalary ?? null,
             contractYearsRemaining: coachRecord.ContractYearsRemaining,
             jobSecurityStatus: coachRecord.CurrentJobSecurityStatus,
             jobSecurityPercentage: coachRecord.CurrentJobSecurityPercentage,
+            personality: coachRecord.Personality ?? null,
+            primaryPipeline: coachRecord.PrimaryPipeline ?? null,
+            offensiveScheme: coachRecord.OffensiveScheme ?? null,
+            defensiveScheme: coachRecord.DefensiveScheme ?? null,
+            offensivePlaybook: coachRecord.OffensivePlaybook ?? null,
+            defensivePlaybook: coachRecord.DefensivePlaybook ?? null,
             isUserControlled: coachRecord.IsUserControlled,
+            talentTree,
             appearance: getScalarAppearanceSnapshot(
                 coachRecord,
                 COACH_APPEARANCE_FIELDS
             )
-        }));
+        });
+    }
+    return coaches;
 }
 
 async function buildCoachingData() {
@@ -3274,6 +3343,11 @@ const cleanPlayers = activePlayers
         const hasPreviousRedshirt = record.RedshirtStatus === "Previous";
         const seasonStats = getPlayerSeasonStats(record);
         const careerStats = getPlayerCareerStats(record);
+        const currentSeasonGamesPlayed = getCurrentSeasonGamesPlayed(seasonStats, currentSeasonIndex);
+        const redshirtConsistency = evaluateRedshirtConsistency({
+            redshirtStatus: record.RedshirtStatus,
+            gamesPlayed: currentSeasonGamesPlayed
+        });
 
         return {
             playerRow: record.index,
@@ -3298,6 +3372,8 @@ const cleanPlayers = activePlayers
             jerseyNumber: record.JerseyNum,
             classYear: record.SchoolYear,
             redshirtStatus: record.RedshirtStatus,
+            currentSeasonGamesPlayed,
+            redshirtConsistency,
             classYearDisplay:
                 hasPreviousRedshirt ? `RS ${record.SchoolYear}` : record.SchoolYear,
             position: record.Position,
@@ -3346,6 +3422,13 @@ const cleanPlayers = activePlayers
             weight: record.Weight + 160,
             attributes: getPlayerAttributeSnapshot(record),
             abilities: getPlayerAbilitySnapshot(record),
+            head: {
+                ...detectHeadIdentity({
+                    assetName: record.PLYR_ASSETNAME,
+                    genericHeadAssetName: record.GenericHeadAssetName
+                }),
+                portraitId: record.PLYR_PORTRAIT ?? null
+            },
             appearance: getScalarAppearanceSnapshot(
                 record,
                 PLAYER_APPEARANCE_FIELDS
@@ -3377,7 +3460,8 @@ for (const game of schedule) {
 }
 const teamHistory = await buildTeamHistoryData();
 const depthCharts = await buildDepthChartData();
-const coaches = buildAllCoachData();
+const coachTalentCatalog = await buildCoachTalentCatalog(franchise);
+const coaches = await buildAllCoachData(coachTalentCatalog);
 const coaching = await buildCoachingData();
 const conferences = await buildConferenceData();
 const recruiting = await buildRecruitingData();
@@ -3415,6 +3499,7 @@ const fieldIndexData = {
     depthCharts,
     coaches,
     coaching,
+    coachTalentCatalog,
     conferences,
     recruiting,
     awards,
@@ -3426,6 +3511,7 @@ const fieldIndexData = {
         playerScalarEditing: true,
         playerAttributesEditing: true,
         playerClassYearEditing: true,
+        redshirtConsistencyWarnings: true,
         playerSkillPointsEditing: true,
         playerPhysicalAbilityTierEditing: true,
         playerMentalAbilityTypeAndTierEditing: true,
@@ -3433,7 +3519,10 @@ const fieldIndexData = {
         coachPointsEditing: true,
         coachTalentTreeEditing: true,
         coachTalentNodeStatusEditing: true,
+        coachNamedTalentEditing: coachTalentCatalog.available,
         playerScalarAppearanceEditing: true,
+        playerHeadIdEditing: true,
+        playerHeadIdPreservesGear: true,
         coachScalarAppearanceEditing: true,
         equipmentEditing: false,
         teamGradesEditing: true,
@@ -3444,6 +3533,9 @@ const fieldIndexData = {
     },
     availability: {
         hasCompleteCfp: cfp.isComplete,
+        hasCoachTalentCatalog: coachTalentCatalog.available,
+        coachTalentCatalogTreeCount: coachTalentCatalog.treeCount,
+        coachTalentCatalogTalentCount: coachTalentCatalog.talentCount,
         hasPlayerLeavingData:
             playerMovement.leavingPlayers.length > 0 ||
             playerMovement.transferCandidates.length > 0 ||

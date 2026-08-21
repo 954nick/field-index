@@ -10,6 +10,7 @@ import {
 } from "./sql.js";
 
 import { buildGameImportSql } from "./build_game_import_sql.js";
+import { buildExtendedImportSql } from "./build_extended_import_sql.js";
 
 function valuesBlock(rows, rowBuilder) {
     return rows.map(row => `(${rowBuilder(row).join(", ")})`).join(",\n        ");
@@ -156,7 +157,10 @@ function buildTeamSql(model) {
         sqlText(team.nickName),
         sqlText(team.abbreviation),
         sqlText(team.assetName),
-        sqlBoolean(team.isTeamBuilder)
+        sqlBoolean(team.isTeamBuilder),
+        sqlText(team.colors?.primary?.hex),
+        sqlText(team.colors?.secondary?.hex),
+        sqlBoolean(team.colors?.hasSecondary)
     ]);
 
     const conferenceValues = valuesBlock(model.conferences, conference => [
@@ -182,6 +186,10 @@ function buildTeamSql(model) {
         sqlInteger(team.defensiveRating),
         sqlInteger(team.teamRank),
         sqlInteger(team.conferenceStanding),
+        sqlInteger(team.recruitingClassRank),
+        sqlInteger(team.recruitingClassConferenceRank),
+        sqlInteger(team.recruitProgramPointsSpent),
+        sqlInteger(team.lastWeekCommittedRecruits),
         sqlInteger(team.wins),
         sqlInteger(team.losses),
         sqlInteger(team.conferenceWins),
@@ -206,7 +214,10 @@ WITH
         nickname,
         abbreviation,
         asset_name,
-        is_team_builder
+        is_team_builder,
+        primary_color_hex,
+        secondary_color_hex,
+        has_secondary_color
     ) AS (
         VALUES
         ${teamValues}
@@ -218,7 +229,10 @@ INSERT INTO teams (
     nickname,
     abbreviation,
     asset_name,
-    is_team_builder
+    is_team_builder,
+    primary_color_hex,
+    secondary_color_hex,
+    has_secondary_color
 )
 SELECT
     ctx.dynasty_id,
@@ -227,7 +241,10 @@ SELECT
     data.nickname,
     data.abbreviation,
     data.asset_name,
-    data.is_team_builder
+    data.is_team_builder,
+    data.primary_color_hex,
+    data.secondary_color_hex,
+    data.has_secondary_color
 FROM data
 CROSS JOIN ctx
 ON CONFLICT (dynasty_id, game_team_index)
@@ -236,7 +253,10 @@ DO UPDATE SET
     nickname = EXCLUDED.nickname,
     abbreviation = EXCLUDED.abbreviation,
     asset_name = EXCLUDED.asset_name,
-    is_team_builder = EXCLUDED.is_team_builder;
+    is_team_builder = EXCLUDED.is_team_builder,
+    primary_color_hex = EXCLUDED.primary_color_hex,
+    secondary_color_hex = EXCLUDED.secondary_color_hex,
+    has_secondary_color = EXCLUDED.has_secondary_color;
 
 INSERT INTO conferences (game_conference_enum, conference_name, asset_name, style_name)
 VALUES
@@ -278,6 +298,10 @@ WITH
         defensive_rating,
         team_rank,
         conference_standing,
+        recruiting_class_rank,
+        recruiting_class_conference_rank,
+        recruit_program_points_spent,
+        last_week_committed_recruits,
         wins,
         losses,
         conference_wins,
@@ -302,6 +326,10 @@ INSERT INTO team_import_snapshots (
     defensive_rating,
     team_rank,
     conference_standing,
+    recruiting_class_rank,
+    recruiting_class_conference_rank,
+    recruit_program_points_spent,
+    last_week_committed_recruits,
     wins,
     losses,
     conference_wins,
@@ -323,6 +351,10 @@ SELECT
     data.defensive_rating,
     data.team_rank,
     data.conference_standing,
+    data.recruiting_class_rank,
+    data.recruiting_class_conference_rank,
+    data.recruit_program_points_spent,
+    data.last_week_committed_recruits,
     data.wins,
     data.losses,
     data.conference_wins,
@@ -350,6 +382,10 @@ DO UPDATE SET
     defensive_rating = EXCLUDED.defensive_rating,
     team_rank = EXCLUDED.team_rank,
     conference_standing = EXCLUDED.conference_standing,
+    recruiting_class_rank = EXCLUDED.recruiting_class_rank,
+    recruiting_class_conference_rank = EXCLUDED.recruiting_class_conference_rank,
+    recruit_program_points_spent = EXCLUDED.recruit_program_points_spent,
+    last_week_committed_recruits = EXCLUDED.last_week_committed_recruits,
     wins = EXCLUDED.wins,
     losses = EXCLUDED.losses,
     conference_wins = EXCLUDED.conference_wins,
@@ -1141,6 +1177,7 @@ function buildFieldIndexImportSql(model, options = {}) {
 
     sections.push(buildAnalyticsNormalizationSql(model));
     sections.push(buildGameImportSql(model, options));
+    sections.push(buildExtendedImportSql(model));
     sections.push("\nCOMMIT;\n");
     return sections.join("\n");
 }

@@ -5,7 +5,7 @@ import { fileURLToPath } from "node:url";
 import { getDatabaseConfig } from "./lib/config.js";
 import { runPsqlCommand } from "./lib/psql.js";
 
-const expectedMigrations = ["001", "002", "003", "004", "005", "006"];
+const expectedMigrations = ["001", "002", "003", "004", "005", "006", "007", "008", "009"];
 
 const requiredTables = [
     "schema_migrations",
@@ -33,7 +33,18 @@ const requiredTables = [
     "team_game_stats",
     "player_game_stat_lines",
     "player_game_stats",
-    "scoring_summary_events"
+    "scoring_summary_events",
+    "player_identity_observations",
+    "ranking_snapshots",
+    "recruiting_prospects",
+    "recruiting_prospect_snapshots",
+    "recruiting_board_snapshots",
+    "recruiting_team_interest_snapshots",
+    "depth_chart_snapshots",
+    "postseason_import_snapshots",
+    "award_snapshots",
+    "coach_talent_tree_snapshots",
+    "coach_talent_node_snapshots"
 ];
 
 const requiredAnalyticsViews = [
@@ -68,7 +79,21 @@ const requiredAnalyticsViews = [
     "team_history",
     "coach_history",
     "coach_careers",
-    "scoring_events"
+    "scoring_events",
+    "ranking_history",
+    "recruiting_history",
+    "recruiting_classes",
+    "recruiting_roster_matches",
+    "depth_chart_history",
+    "postseason_history",
+    "postseason_games",
+    "championship_history",
+    "award_history",
+    "coach_talent_tree_history",
+    "coach_talent_node_history",
+    "latest_coach_talent_nodes",
+    "recruiting_class_ranking_history",
+    "latest_recruiting_class_rankings"
 ];
 
 const requiredBiViews = [
@@ -95,7 +120,21 @@ const requiredBiViews = [
     "fact_conference_season",
     "fact_team_progression",
     "fact_player_progression",
-    "fact_coach_progression"
+    "fact_coach_progression",
+    "fact_ranking_snapshot",
+    "fact_recruiting_prospect",
+    "fact_recruiting_class",
+    "fact_recruiting_roster_match",
+    "fact_depth_chart",
+    "fact_postseason",
+    "fact_postseason_game",
+    "fact_championship",
+    "fact_award",
+    "fact_coach_talent_tree",
+    "fact_coach_talent_node",
+    "current_coach_talent_node",
+    "fact_recruiting_class_ranking",
+    "current_recruiting_class_ranking"
 ];
 
 function scalar(sql, config) {
@@ -156,7 +195,7 @@ function verifyDatabase(options = {}) {
         version => !migrationVersions.includes(version)
     );
     check(
-        "Migrations 001-006 tracked",
+        "Migrations 001-009 tracked",
         missingMigrations.length === 0,
         missingMigrations.length === 0
             ? migrationVersions.join(",")
@@ -264,6 +303,30 @@ function verifyDatabase(options = {}) {
         `mismatches=${crossDynastyCoachSeasonCount}`
     );
 
+    const orphanCoachTalentTreeCount = integer(`
+        SELECT COUNT(*)
+        FROM coach_talent_tree_snapshots AS ctts
+        LEFT JOIN coach_seasons AS cs ON cs.coach_season_id = ctts.coach_season_id
+        WHERE cs.coach_season_id IS NULL;
+    `, config);
+    check(
+        "Coach talent-tree snapshot integrity",
+        orphanCoachTalentTreeCount === 0,
+        `orphans=${orphanCoachTalentTreeCount}`
+    );
+
+    const orphanCoachTalentNodeCount = integer(`
+        SELECT COUNT(*)
+        FROM coach_talent_node_snapshots AS ctns
+        LEFT JOIN coach_seasons AS cs ON cs.coach_season_id = ctns.coach_season_id
+        WHERE cs.coach_season_id IS NULL;
+    `, config);
+    check(
+        "Coach talent-node snapshot integrity",
+        orphanCoachTalentNodeCount === 0,
+        `orphans=${orphanCoachTalentNodeCount}`
+    );
+
     const gameSeasonMismatchCount = integer(`
         SELECT COUNT(*)
         FROM games AS g
@@ -356,6 +419,129 @@ function verifyDatabase(options = {}) {
         check("Latest import normalized player abilities", playerAbilities > 0, `rows=${playerAbilities}`);
         check("Latest import normalized team grades", teamGrades > 0, `rows=${teamGrades}`);
         check("Latest import normalized coach stats", coachStats > 0, `rows=${coachStats}`);
+
+        // -------------------- EXTENDED HISTORY IMPORT VERIFICATION --------------------
+
+        const identityObservations = integer(
+            `SELECT COUNT(*) FROM player_identity_observations WHERE import_id = ${numericImportId};`,
+            config
+        );
+        check(
+            "Latest import player identity evidence",
+            identityObservations === playerSnapshots && identityObservations > 0,
+            `players=${playerSnapshots} observations=${identityObservations}`
+        );
+
+        const rankingSnapshots = integer(
+            `SELECT COUNT(*) FROM ranking_snapshots WHERE import_id = ${numericImportId};`,
+            config
+        );
+        const invalidRankingRows = integer(`
+            SELECT COUNT(*)
+            FROM ranking_snapshots
+            WHERE import_id = ${numericImportId}
+              AND (rank < 1 OR rank > 25);
+        `, config);
+        check(
+            "Latest import ranking snapshots",
+            rankingSnapshots <= 75 && invalidRankingRows === 0,
+            `rows=${rankingSnapshots} invalid=${invalidRankingRows}`
+        );
+
+        const recruitingProspects = integer(
+            `SELECT COUNT(*) FROM recruiting_prospect_snapshots WHERE import_id = ${numericImportId};`,
+            config
+        );
+        const recruitingBoardRows = integer(
+            `SELECT COUNT(*) FROM recruiting_board_snapshots WHERE import_id = ${numericImportId};`,
+            config
+        );
+        const recruitingInterestRows = integer(
+            `SELECT COUNT(*) FROM recruiting_team_interest_snapshots WHERE import_id = ${numericImportId};`,
+            config
+        );
+        const invalidRecruitMatches = integer(`
+            SELECT COUNT(*)
+            FROM recruiting_prospect_snapshots AS rps
+            JOIN recruiting_prospects AS rp ON rp.recruit_id = rps.recruit_id
+            JOIN players AS p ON p.player_id = rps.matched_player_id
+            WHERE rps.import_id = ${numericImportId}
+              AND p.dynasty_id <> rp.dynasty_id;
+        `, config);
+        check(
+            "Latest import recruiting history",
+            invalidRecruitMatches === 0,
+            `prospects=${recruitingProspects} boards=${recruitingBoardRows} interests=${recruitingInterestRows}`
+        );
+
+        const depthChartRows = integer(
+            `SELECT COUNT(*) FROM depth_chart_snapshots WHERE import_id = ${numericImportId};`,
+            config
+        );
+        const unresolvedDepthChartPlayers = integer(`
+            SELECT COUNT(*)
+            FROM depth_chart_snapshots
+            WHERE import_id = ${numericImportId}
+              AND player_id IS NULL;
+        `, config);
+        check(
+            "Latest import depth-chart history",
+            depthChartRows > 0,
+            `rows=${depthChartRows} unresolved_players=${unresolvedDepthChartPlayers}`
+        );
+
+        const postseasonRows = integer(
+            `SELECT COUNT(*) FROM postseason_import_snapshots WHERE import_id = ${numericImportId};`,
+            config
+        );
+        check(
+            "Latest import postseason snapshot",
+            postseasonRows === 1,
+            `rows=${postseasonRows}`
+        );
+
+        const awardRows = integer(
+            `SELECT COUNT(*) FROM award_snapshots WHERE import_id = ${numericImportId};`,
+            config
+        );
+        const invalidAwardLinks = integer(`
+            SELECT COUNT(*)
+            FROM award_snapshots
+            WHERE import_id = ${numericImportId}
+              AND (
+                    (entity_type = 'player' AND player_id IS NULL)
+                 OR (entity_type = 'coach' AND coach_id IS NULL)
+              );
+        `, config);
+        check(
+            "Latest import award history links",
+            invalidAwardLinks === 0,
+            `rows=${awardRows} unresolved=${invalidAwardLinks}`
+        );
+
+        const coachTalentTrees = integer(
+            `SELECT COUNT(*) FROM coach_talent_tree_snapshots WHERE import_id = ${numericImportId};`,
+            config
+        );
+        const coachTalentNodes = integer(
+            `SELECT COUNT(*) FROM coach_talent_node_snapshots WHERE import_id = ${numericImportId};`,
+            config
+        );
+        const coachTalentCoachCount = integer(`
+            SELECT COUNT(DISTINCT coach_season_id)
+            FROM coach_talent_tree_snapshots
+            WHERE import_id = ${numericImportId};
+        `, config);
+        check(
+            "Latest import coach talent trees",
+            coachTalentTrees >= coachTalentCoachCount * 13 && coachTalentCoachCount > 0,
+            `coaches=${coachTalentCoachCount} trees=${coachTalentTrees} nodes=${coachTalentNodes}`
+        );
+        check(
+            "Latest import coach talent nodes",
+            coachTalentNodes >= 0 && coachTalentNodes <= coachTalentTrees * 33,
+            `trees=${coachTalentTrees} nodes=${coachTalentNodes}`
+        );
 
         const gameSnapshots = integer(
             `SELECT COUNT(*) FROM game_import_snapshots WHERE import_id = ${numericImportId};`,
@@ -658,6 +844,82 @@ function verifyDatabase(options = {}) {
         check("Power BI team-season fact", biTeamSeasonRows === analyticsTeamRankings, `rows=${biTeamSeasonRows}`);
         check("Power BI player-season fact", biPlayerSeasonRows === analyticsPlayerSeasons, `rows=${biPlayerSeasonRows}`);
         check("Power BI coach-season fact", biCoachSeasonRows === analyticsCoachSeasons, `rows=${biCoachSeasonRows}`);
+
+        const rawRankingHistory = integer("SELECT COUNT(*) FROM ranking_snapshots;", config);
+        const analyticsRankingHistory = integer("SELECT COUNT(*) FROM analytics.ranking_history;", config);
+        const biRankingHistory = integer("SELECT COUNT(*) FROM bi.fact_ranking_snapshot;", config);
+        check(
+            "Ranking history coverage",
+            rawRankingHistory === analyticsRankingHistory && analyticsRankingHistory === biRankingHistory,
+            `raw=${rawRankingHistory} analytics=${analyticsRankingHistory} bi=${biRankingHistory}`
+        );
+
+        const rawRecruitHistory = integer("SELECT COUNT(*) FROM recruiting_prospect_snapshots;", config);
+        const analyticsRecruitHistory = integer("SELECT COUNT(*) FROM analytics.recruiting_history;", config);
+        const biRecruitHistory = integer("SELECT COUNT(*) FROM bi.fact_recruiting_prospect;", config);
+        check(
+            "Recruiting history coverage",
+            rawRecruitHistory === analyticsRecruitHistory && analyticsRecruitHistory === biRecruitHistory,
+            `raw=${rawRecruitHistory} analytics=${analyticsRecruitHistory} bi=${biRecruitHistory}`
+        );
+
+        const rawDepthChartHistory = integer("SELECT COUNT(*) FROM depth_chart_snapshots;", config);
+        const analyticsDepthChartHistory = integer("SELECT COUNT(*) FROM analytics.depth_chart_history;", config);
+        const biDepthChartHistory = integer("SELECT COUNT(*) FROM bi.fact_depth_chart;", config);
+        check(
+            "Depth-chart history coverage",
+            rawDepthChartHistory === analyticsDepthChartHistory && analyticsDepthChartHistory === biDepthChartHistory,
+            `raw=${rawDepthChartHistory} analytics=${analyticsDepthChartHistory} bi=${biDepthChartHistory}`
+        );
+
+        const rawPostseasonHistory = integer("SELECT COUNT(*) FROM postseason_import_snapshots;", config);
+        const analyticsPostseasonHistory = integer("SELECT COUNT(*) FROM analytics.postseason_history;", config);
+        const biPostseasonHistory = integer("SELECT COUNT(*) FROM bi.fact_postseason;", config);
+        check(
+            "Postseason history coverage",
+            rawPostseasonHistory === analyticsPostseasonHistory && analyticsPostseasonHistory === biPostseasonHistory,
+            `raw=${rawPostseasonHistory} analytics=${analyticsPostseasonHistory} bi=${biPostseasonHistory}`
+        );
+
+        const rawAwardHistory = integer("SELECT COUNT(*) FROM award_snapshots;", config);
+        const analyticsAwardHistory = integer("SELECT COUNT(*) FROM analytics.award_history;", config);
+        const biAwardHistory = integer("SELECT COUNT(*) FROM bi.fact_award;", config);
+        check(
+            "Award history coverage",
+            rawAwardHistory === analyticsAwardHistory && analyticsAwardHistory === biAwardHistory,
+            `raw=${rawAwardHistory} analytics=${analyticsAwardHistory} bi=${biAwardHistory}`
+        );
+
+        const rawRecruitingClassRanks = integer(`
+            SELECT COUNT(*)
+            FROM team_import_snapshots
+            WHERE recruiting_class_rank IS NOT NULL;
+        `, config);
+        const analyticsRecruitingClassRanks = integer("SELECT COUNT(*) FROM analytics.recruiting_class_ranking_history;", config);
+        const biRecruitingClassRanks = integer("SELECT COUNT(*) FROM bi.fact_recruiting_class_ranking;", config);
+        check(
+            "Recruiting class-ranking history coverage",
+            rawRecruitingClassRanks === analyticsRecruitingClassRanks && analyticsRecruitingClassRanks === biRecruitingClassRanks,
+            `raw=${rawRecruitingClassRanks} analytics=${analyticsRecruitingClassRanks} bi=${biRecruitingClassRanks}`
+        );
+
+        const rawCoachTalentTrees = integer("SELECT COUNT(*) FROM coach_talent_tree_snapshots;", config);
+        const analyticsCoachTalentTrees = integer("SELECT COUNT(*) FROM analytics.coach_talent_tree_history;", config);
+        const biCoachTalentTrees = integer("SELECT COUNT(*) FROM bi.fact_coach_talent_tree;", config);
+        check(
+            "Coach talent-tree history coverage",
+            rawCoachTalentTrees === analyticsCoachTalentTrees && analyticsCoachTalentTrees === biCoachTalentTrees,
+            `raw=${rawCoachTalentTrees} analytics=${analyticsCoachTalentTrees} bi=${biCoachTalentTrees}`
+        );
+
+        const rawCoachTalentNodes = integer("SELECT COUNT(*) FROM coach_talent_node_snapshots;", config);
+        const analyticsCoachTalentNodes = integer("SELECT COUNT(*) FROM analytics.coach_talent_node_history;", config);
+        const biCoachTalentNodes = integer("SELECT COUNT(*) FROM bi.fact_coach_talent_node;", config);
+        check(
+            "Coach talent-node history coverage",
+            rawCoachTalentNodes === analyticsCoachTalentNodes && analyticsCoachTalentNodes === biCoachTalentNodes,
+            `raw=${rawCoachTalentNodes} analytics=${analyticsCoachTalentNodes} bi=${biCoachTalentNodes}`
+        );
     }
 
     const passed = checks.every(item => item.passed);

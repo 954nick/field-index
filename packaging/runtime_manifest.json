@@ -1,0 +1,23 @@
+{
+  "format": "field_index_windows_runtime_manifest",
+  "version": 1,
+  "backend_version": "0.7.0",
+  "status": "preparation_only",
+  "required": {
+    "cfb27_schema": "parser/schemas/C27_486_1.gz",
+    "schema_metadata": {
+      "major": 486,
+      "minor": 1,
+      "gameYear": 27
+    },
+    "classic_zlib_equivalence_gate": true,
+    "short_safe_save_names": true,
+    "raw_game_assets_bundled": false
+  },
+  "final_runtime_decisions_pending": [
+    "desktop_ui_runtime",
+    "bundled_javascript_runtime",
+    "bundled_classic_zlib_runtime",
+    "database_distribution_strategy"
+  ]
+}

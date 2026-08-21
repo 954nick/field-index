@@ -1,0 +1,26 @@
+{
+  "name": "field-index",
+  "version": "0.7.0",
+  "private": true,
+  "description": "Backend, data, analytics, and safe editing platform for CFB27 Dynasty saves",
+  "type": "module",
+  "scripts": {
+    "check": "node scripts/check_source.js && npm --prefix parser run check",
+    "test": "node --test tests/*.test.js && npm --prefix parser test",
+    "preflight": "node scripts/backend_preflight.js",
+    "db:migrate": "node database/migrate.js",
+    "db:import": "node database/import_save.js",
+    "db:verify": "node database/verify.js",
+    "head:catalog": "npm --prefix parser run head:catalog --",
+    "portrait:index": "npm --prefix parser run portrait:index --",
+    "ingame:plan": "node scripts/create_ingame_regression_plan.js",
+    "ingame:generate": "node scripts/create_ingame_regression_suite.js",
+    "mapping:prepare": "node scripts/prepare_local_backend_data.js",
+    "release:gate": "npm run check && npm test && npm run preflight && npm run backend:audit && node scripts/backend_release_gate.js",
+    "backend:audit": "node scripts/backend_completion_audit.js",
+    "ingame:heads": "node scripts/create_head_regression_suite.js"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

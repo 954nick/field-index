@@ -1,5 +1,5 @@
 -- -------------------- FIELD INDEX ANALYTICS EXAMPLES --------------------
--- Run individual queries in pgAdmin or psql after migration 006.
+-- Run individual queries in pgAdmin or psql after migration 007.
 
 -- -------------------- TEAM RANKINGS --------------------
 
@@ -236,3 +236,119 @@ FROM analytics.team_history
 WHERE dynasty_key = 'gators-dynasty'
   AND school_name = 'Florida'
 ORDER BY season_year;
+
+
+-- -------------------- CFP RANKING MOVEMENT --------------------
+
+SELECT
+    season_year,
+    week_type,
+    week_number,
+    team_name,
+    rank,
+    last_week_rank,
+    points_raw,
+    first_place_votes
+FROM analytics.ranking_history
+WHERE dynasty_key = 'gators-dynasty'
+  AND season_year = 2028
+  AND poll_type = 'cfp'
+  AND team_name = 'Florida'
+ORDER BY import_id;
+
+
+-- -------------------- RECRUITING CLASS SUMMARY --------------------
+
+SELECT
+    class_season_year,
+    team_name,
+    signed_count,
+    transfer_count,
+    non_transfer_count,
+    average_star_rating,
+    average_national_rank
+FROM analytics.recruiting_classes
+WHERE dynasty_key = 'gators-dynasty'
+ORDER BY class_season_year DESC, signed_count DESC, team_name;
+
+
+-- -------------------- RECRUIT TO ROSTER MATCHES --------------------
+
+SELECT
+    rh.class_season_year,
+    rh.player_display_name AS recruit_name,
+    rh.position,
+    rh.star_rating,
+    rh.signed_team_name,
+    rrm.matched_player_id,
+    rrm.match_strategy,
+    rrm.candidate_count
+FROM analytics.recruiting_history AS rh
+JOIN analytics.recruiting_roster_matches AS rrm
+  ON rrm.recruit_id = rh.recruit_id
+WHERE rh.dynasty_key = 'gators-dynasty'
+  AND rh.is_signed
+ORDER BY rh.class_season_year DESC, rh.national_rank NULLS LAST, recruit_name;
+
+
+-- -------------------- DEPTH CHART HISTORY --------------------
+
+SELECT
+    season_year,
+    week_type,
+    week_number,
+    team_name,
+    position_key,
+    depth,
+    player_display_name,
+    jersey_number,
+    overall_rating
+FROM analytics.depth_chart_history
+WHERE dynasty_key = 'gators-dynasty'
+  AND team_name = 'Florida'
+  AND position_key = 'QB'
+ORDER BY season_year, import_id, depth;
+
+
+-- -------------------- POSTSEASON GAME HISTORY --------------------
+
+SELECT
+    season_year,
+    week_type,
+    week_number,
+    postseason_game_type,
+    bowl_name,
+    home_team_name,
+    away_team_name,
+    home_score,
+    away_score
+FROM analytics.postseason_games
+WHERE dynasty_key = 'gators-dynasty'
+ORDER BY season_year, week_number, game_number;
+
+
+-- -------------------- NATIONAL CHAMPIONSHIP HISTORY --------------------
+
+SELECT
+    season_year,
+    national_champion_team_name,
+    runner_up_team_name,
+    cfp_complete
+FROM analytics.championship_history
+WHERE dynasty_key = 'gators-dynasty'
+ORDER BY season_year;
+
+
+-- -------------------- AWARD HISTORY --------------------
+
+SELECT
+    season_year,
+    award_type,
+    entity_type,
+    entity_display_name,
+    team_name,
+    position,
+    award_score
+FROM analytics.award_history
+WHERE dynasty_key = 'gators-dynasty'
+ORDER BY season_year DESC, award_type, award_ordinal;

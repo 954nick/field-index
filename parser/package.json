@@ -1,11 +1,14 @@
 {
   "name": "field-index-parser",
-  "version": "0.3.3",
+  "version": "0.7.0",
   "description": "CFB27 Dynasty read/edit backend for Field Index",
   "type": "module",
   "scripts": {
-    "check": "node --check index.js && node --check editor.js && node --check character_visuals.js && node --check cfb27_safe_writer.js && node --check coach_schema_compat.js && node --check table_ids.js",
+    "check": "node --check index.js && node --check editor.js && node --check character_visuals.js && node --check cfb27_safe_writer.js && node --check coach_schema_compat.js && node --check head_catalog.js && node --check coach_talents.js && node --check cfp_bracket.js && node --check redshirt_consistency.js && node --check build_head_catalog.js && node --check build_portrait_index.js && node --check table_ids.js",
+    "test": "node --test tests/*.test.js",
     "read": "node index.js",
+    "head:catalog": "node build_head_catalog.js",
+    "portrait:index": "node build_portrait_index.js",
     "db:migrate": "node ../database/migrate.js",
     "db:import": "node ../database/import_save.js",
     "db:verify": "node ../database/verify.js"

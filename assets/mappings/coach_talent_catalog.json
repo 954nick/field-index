@@ -1,0 +1,2697 @@
+{
+  "format": "field_index_cfb27_coach_talent_catalog",
+  "version": 2,
+  "game_year": 27,
+  "schema_major": 486,
+  "schema_minor": 1,
+  "status_values": [
+    "NotOwned",
+    "Purchasable",
+    "Owned",
+    "Locked"
+  ],
+  "node_count_per_subtree": 33,
+  "tree_count": 13,
+  "raw_node_count": 429,
+  "node_mapping_policy": "TalentStatus index is the authoritative backend identifier. Friendly ability names are UI metadata only until verified against CFB27 and never drive save writes.",
+  "trees": [
+    {
+      "tree_index": 0,
+      "internal_name": "Motivator",
+      "display_name": "Motivator",
+      "canonical_key": "Motivator",
+      "nodes": [
+        {
+          "talent_index": 0,
+          "field": "TalentStatus0",
+          "canonical_key": "Motivator:0",
+          "is_tree_root": true
+        },
+        {
+          "talent_index": 1,
+          "field": "TalentStatus1",
+          "canonical_key": "Motivator:1",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 2,
+          "field": "TalentStatus2",
+          "canonical_key": "Motivator:2",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 3,
+          "field": "TalentStatus3",
+          "canonical_key": "Motivator:3",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 4,
+          "field": "TalentStatus4",
+          "canonical_key": "Motivator:4",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 5,
+          "field": "TalentStatus5",
+          "canonical_key": "Motivator:5",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 6,
+          "field": "TalentStatus6",
+          "canonical_key": "Motivator:6",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 7,
+          "field": "TalentStatus7",
+          "canonical_key": "Motivator:7",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 8,
+          "field": "TalentStatus8",
+          "canonical_key": "Motivator:8",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 9,
+          "field": "TalentStatus9",
+          "canonical_key": "Motivator:9",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 10,
+          "field": "TalentStatus10",
+          "canonical_key": "Motivator:10",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 11,
+          "field": "TalentStatus11",
+          "canonical_key": "Motivator:11",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 12,
+          "field": "TalentStatus12",
+          "canonical_key": "Motivator:12",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 13,
+          "field": "TalentStatus13",
+          "canonical_key": "Motivator:13",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 14,
+          "field": "TalentStatus14",
+          "canonical_key": "Motivator:14",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 15,
+          "field": "TalentStatus15",
+          "canonical_key": "Motivator:15",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 16,
+          "field": "TalentStatus16",
+          "canonical_key": "Motivator:16",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 17,
+          "field": "TalentStatus17",
+          "canonical_key": "Motivator:17",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 18,
+          "field": "TalentStatus18",
+          "canonical_key": "Motivator:18",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 19,
+          "field": "TalentStatus19",
+          "canonical_key": "Motivator:19",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 20,
+          "field": "TalentStatus20",
+          "canonical_key": "Motivator:20",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 21,
+          "field": "TalentStatus21",
+          "canonical_key": "Motivator:21",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 22,
+          "field": "TalentStatus22",
+          "canonical_key": "Motivator:22",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 23,
+          "field": "TalentStatus23",
+          "canonical_key": "Motivator:23",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 24,
+          "field": "TalentStatus24",
+          "canonical_key": "Motivator:24",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 25,
+          "field": "TalentStatus25",
+          "canonical_key": "Motivator:25",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 26,
+          "field": "TalentStatus26",
+          "canonical_key": "Motivator:26",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 27,
+          "field": "TalentStatus27",
+          "canonical_key": "Motivator:27",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 28,
+          "field": "TalentStatus28",
+          "canonical_key": "Motivator:28",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 29,
+          "field": "TalentStatus29",
+          "canonical_key": "Motivator:29",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 30,
+          "field": "TalentStatus30",
+          "canonical_key": "Motivator:30",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 31,
+          "field": "TalentStatus31",
+          "canonical_key": "Motivator:31",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 32,
+          "field": "TalentStatus32",
+          "canonical_key": "Motivator:32",
+          "is_tree_root": false
+        }
+      ]
+    },
+    {
+      "tree_index": 1,
+      "internal_name": "Schemer",
+      "display_name": "Tactician",
+      "canonical_key": "Schemer",
+      "nodes": [
+        {
+          "talent_index": 0,
+          "field": "TalentStatus0",
+          "canonical_key": "Schemer:0",
+          "is_tree_root": true
+        },
+        {
+          "talent_index": 1,
+          "field": "TalentStatus1",
+          "canonical_key": "Schemer:1",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 2,
+          "field": "TalentStatus2",
+          "canonical_key": "Schemer:2",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 3,
+          "field": "TalentStatus3",
+          "canonical_key": "Schemer:3",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 4,
+          "field": "TalentStatus4",
+          "canonical_key": "Schemer:4",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 5,
+          "field": "TalentStatus5",
+          "canonical_key": "Schemer:5",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 6,
+          "field": "TalentStatus6",
+          "canonical_key": "Schemer:6",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 7,
+          "field": "TalentStatus7",
+          "canonical_key": "Schemer:7",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 8,
+          "field": "TalentStatus8",
+          "canonical_key": "Schemer:8",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 9,
+          "field": "TalentStatus9",
+          "canonical_key": "Schemer:9",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 10,
+          "field": "TalentStatus10",
+          "canonical_key": "Schemer:10",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 11,
+          "field": "TalentStatus11",
+          "canonical_key": "Schemer:11",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 12,
+          "field": "TalentStatus12",
+          "canonical_key": "Schemer:12",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 13,
+          "field": "TalentStatus13",
+          "canonical_key": "Schemer:13",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 14,
+          "field": "TalentStatus14",
+          "canonical_key": "Schemer:14",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 15,
+          "field": "TalentStatus15",
+          "canonical_key": "Schemer:15",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 16,
+          "field": "TalentStatus16",
+          "canonical_key": "Schemer:16",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 17,
+          "field": "TalentStatus17",
+          "canonical_key": "Schemer:17",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 18,
+          "field": "TalentStatus18",
+          "canonical_key": "Schemer:18",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 19,
+          "field": "TalentStatus19",
+          "canonical_key": "Schemer:19",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 20,
+          "field": "TalentStatus20",
+          "canonical_key": "Schemer:20",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 21,
+          "field": "TalentStatus21",
+          "canonical_key": "Schemer:21",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 22,
+          "field": "TalentStatus22",
+          "canonical_key": "Schemer:22",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 23,
+          "field": "TalentStatus23",
+          "canonical_key": "Schemer:23",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 24,
+          "field": "TalentStatus24",
+          "canonical_key": "Schemer:24",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 25,
+          "field": "TalentStatus25",
+          "canonical_key": "Schemer:25",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 26,
+          "field": "TalentStatus26",
+          "canonical_key": "Schemer:26",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 27,
+          "field": "TalentStatus27",
+          "canonical_key": "Schemer:27",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 28,
+          "field": "TalentStatus28",
+          "canonical_key": "Schemer:28",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 29,
+          "field": "TalentStatus29",
+          "canonical_key": "Schemer:29",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 30,
+          "field": "TalentStatus30",
+          "canonical_key": "Schemer:30",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 31,
+          "field": "TalentStatus31",
+          "canonical_key": "Schemer:31",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 32,
+          "field": "TalentStatus32",
+          "canonical_key": "Schemer:32",
+          "is_tree_root": false
+        }
+      ]
+    },
+    {
+      "tree_index": 2,
+      "internal_name": "Recruiter",
+      "display_name": "Recruiter",
+      "canonical_key": "Recruiter",
+      "nodes": [
+        {
+          "talent_index": 0,
+          "field": "TalentStatus0",
+          "canonical_key": "Recruiter:0",
+          "is_tree_root": true
+        },
+        {
+          "talent_index": 1,
+          "field": "TalentStatus1",
+          "canonical_key": "Recruiter:1",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 2,
+          "field": "TalentStatus2",
+          "canonical_key": "Recruiter:2",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 3,
+          "field": "TalentStatus3",
+          "canonical_key": "Recruiter:3",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 4,
+          "field": "TalentStatus4",
+          "canonical_key": "Recruiter:4",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 5,
+          "field": "TalentStatus5",
+          "canonical_key": "Recruiter:5",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 6,
+          "field": "TalentStatus6",
+          "canonical_key": "Recruiter:6",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 7,
+          "field": "TalentStatus7",
+          "canonical_key": "Recruiter:7",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 8,
+          "field": "TalentStatus8",
+          "canonical_key": "Recruiter:8",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 9,
+          "field": "TalentStatus9",
+          "canonical_key": "Recruiter:9",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 10,
+          "field": "TalentStatus10",
+          "canonical_key": "Recruiter:10",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 11,
+          "field": "TalentStatus11",
+          "canonical_key": "Recruiter:11",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 12,
+          "field": "TalentStatus12",
+          "canonical_key": "Recruiter:12",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 13,
+          "field": "TalentStatus13",
+          "canonical_key": "Recruiter:13",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 14,
+          "field": "TalentStatus14",
+          "canonical_key": "Recruiter:14",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 15,
+          "field": "TalentStatus15",
+          "canonical_key": "Recruiter:15",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 16,
+          "field": "TalentStatus16",
+          "canonical_key": "Recruiter:16",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 17,
+          "field": "TalentStatus17",
+          "canonical_key": "Recruiter:17",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 18,
+          "field": "TalentStatus18",
+          "canonical_key": "Recruiter:18",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 19,
+          "field": "TalentStatus19",
+          "canonical_key": "Recruiter:19",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 20,
+          "field": "TalentStatus20",
+          "canonical_key": "Recruiter:20",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 21,
+          "field": "TalentStatus21",
+          "canonical_key": "Recruiter:21",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 22,
+          "field": "TalentStatus22",
+          "canonical_key": "Recruiter:22",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 23,
+          "field": "TalentStatus23",
+          "canonical_key": "Recruiter:23",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 24,
+          "field": "TalentStatus24",
+          "canonical_key": "Recruiter:24",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 25,
+          "field": "TalentStatus25",
+          "canonical_key": "Recruiter:25",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 26,
+          "field": "TalentStatus26",
+          "canonical_key": "Recruiter:26",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 27,
+          "field": "TalentStatus27",
+          "canonical_key": "Recruiter:27",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 28,
+          "field": "TalentStatus28",
+          "canonical_key": "Recruiter:28",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 29,
+          "field": "TalentStatus29",
+          "canonical_key": "Recruiter:29",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 30,
+          "field": "TalentStatus30",
+          "canonical_key": "Recruiter:30",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 31,
+          "field": "TalentStatus31",
+          "canonical_key": "Recruiter:31",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 32,
+          "field": "TalentStatus32",
+          "canonical_key": "Recruiter:32",
+          "is_tree_root": false
+        }
+      ]
+    },
+    {
+      "tree_index": 3,
+      "internal_name": "MasterMotivator",
+      "display_name": "Master Motivator",
+      "canonical_key": "MasterMotivator",
+      "nodes": [
+        {
+          "talent_index": 0,
+          "field": "TalentStatus0",
+          "canonical_key": "MasterMotivator:0",
+          "is_tree_root": true
+        },
+        {
+          "talent_index": 1,
+          "field": "TalentStatus1",
+          "canonical_key": "MasterMotivator:1",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 2,
+          "field": "TalentStatus2",
+          "canonical_key": "MasterMotivator:2",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 3,
+          "field": "TalentStatus3",
+          "canonical_key": "MasterMotivator:3",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 4,
+          "field": "TalentStatus4",
+          "canonical_key": "MasterMotivator:4",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 5,
+          "field": "TalentStatus5",
+          "canonical_key": "MasterMotivator:5",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 6,
+          "field": "TalentStatus6",
+          "canonical_key": "MasterMotivator:6",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 7,
+          "field": "TalentStatus7",
+          "canonical_key": "MasterMotivator:7",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 8,
+          "field": "TalentStatus8",
+          "canonical_key": "MasterMotivator:8",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 9,
+          "field": "TalentStatus9",
+          "canonical_key": "MasterMotivator:9",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 10,
+          "field": "TalentStatus10",
+          "canonical_key": "MasterMotivator:10",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 11,
+          "field": "TalentStatus11",
+          "canonical_key": "MasterMotivator:11",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 12,
+          "field": "TalentStatus12",
+          "canonical_key": "MasterMotivator:12",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 13,
+          "field": "TalentStatus13",
+          "canonical_key": "MasterMotivator:13",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 14,
+          "field": "TalentStatus14",
+          "canonical_key": "MasterMotivator:14",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 15,
+          "field": "TalentStatus15",
+          "canonical_key": "MasterMotivator:15",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 16,
+          "field": "TalentStatus16",
+          "canonical_key": "MasterMotivator:16",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 17,
+          "field": "TalentStatus17",
+          "canonical_key": "MasterMotivator:17",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 18,
+          "field": "TalentStatus18",
+          "canonical_key": "MasterMotivator:18",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 19,
+          "field": "TalentStatus19",
+          "canonical_key": "MasterMotivator:19",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 20,
+          "field": "TalentStatus20",
+          "canonical_key": "MasterMotivator:20",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 21,
+          "field": "TalentStatus21",
+          "canonical_key": "MasterMotivator:21",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 22,
+          "field": "TalentStatus22",
+          "canonical_key": "MasterMotivator:22",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 23,
+          "field": "TalentStatus23",
+          "canonical_key": "MasterMotivator:23",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 24,
+          "field": "TalentStatus24",
+          "canonical_key": "MasterMotivator:24",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 25,
+          "field": "TalentStatus25",
+          "canonical_key": "MasterMotivator:25",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 26,
+          "field": "TalentStatus26",
+          "canonical_key": "MasterMotivator:26",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 27,
+          "field": "TalentStatus27",
+          "canonical_key": "MasterMotivator:27",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 28,
+          "field": "TalentStatus28",
+          "canonical_key": "MasterMotivator:28",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 29,
+          "field": "TalentStatus29",
+          "canonical_key": "MasterMotivator:29",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 30,
+          "field": "TalentStatus30",
+          "canonical_key": "MasterMotivator:30",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 31,
+          "field": "TalentStatus31",
+          "canonical_key": "MasterMotivator:31",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 32,
+          "field": "TalentStatus32",
+          "canonical_key": "MasterMotivator:32",
+          "is_tree_root": false
+        }
+      ]
+    },
+    {
+      "tree_index": 4,
+      "internal_name": "Architect",
+      "display_name": "Architect",
+      "canonical_key": "Architect",
+      "nodes": [
+        {
+          "talent_index": 0,
+          "field": "TalentStatus0",
+          "canonical_key": "Architect:0",
+          "is_tree_root": true
+        },
+        {
+          "talent_index": 1,
+          "field": "TalentStatus1",
+          "canonical_key": "Architect:1",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 2,
+          "field": "TalentStatus2",
+          "canonical_key": "Architect:2",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 3,
+          "field": "TalentStatus3",
+          "canonical_key": "Architect:3",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 4,
+          "field": "TalentStatus4",
+          "canonical_key": "Architect:4",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 5,
+          "field": "TalentStatus5",
+          "canonical_key": "Architect:5",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 6,
+          "field": "TalentStatus6",
+          "canonical_key": "Architect:6",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 7,
+          "field": "TalentStatus7",
+          "canonical_key": "Architect:7",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 8,
+          "field": "TalentStatus8",
+          "canonical_key": "Architect:8",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 9,
+          "field": "TalentStatus9",
+          "canonical_key": "Architect:9",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 10,
+          "field": "TalentStatus10",
+          "canonical_key": "Architect:10",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 11,
+          "field": "TalentStatus11",
+          "canonical_key": "Architect:11",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 12,
+          "field": "TalentStatus12",
+          "canonical_key": "Architect:12",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 13,
+          "field": "TalentStatus13",
+          "canonical_key": "Architect:13",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 14,
+          "field": "TalentStatus14",
+          "canonical_key": "Architect:14",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 15,
+          "field": "TalentStatus15",
+          "canonical_key": "Architect:15",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 16,
+          "field": "TalentStatus16",
+          "canonical_key": "Architect:16",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 17,
+          "field": "TalentStatus17",
+          "canonical_key": "Architect:17",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 18,
+          "field": "TalentStatus18",
+          "canonical_key": "Architect:18",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 19,
+          "field": "TalentStatus19",
+          "canonical_key": "Architect:19",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 20,
+          "field": "TalentStatus20",
+          "canonical_key": "Architect:20",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 21,
+          "field": "TalentStatus21",
+          "canonical_key": "Architect:21",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 22,
+          "field": "TalentStatus22",
+          "canonical_key": "Architect:22",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 23,
+          "field": "TalentStatus23",
+          "canonical_key": "Architect:23",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 24,
+          "field": "TalentStatus24",
+          "canonical_key": "Architect:24",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 25,
+          "field": "TalentStatus25",
+          "canonical_key": "Architect:25",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 26,
+          "field": "TalentStatus26",
+          "canonical_key": "Architect:26",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 27,
+          "field": "TalentStatus27",
+          "canonical_key": "Architect:27",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 28,
+          "field": "TalentStatus28",
+          "canonical_key": "Architect:28",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 29,
+          "field": "TalentStatus29",
+          "canonical_key": "Architect:29",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 30,
+          "field": "TalentStatus30",
+          "canonical_key": "Architect:30",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 31,
+          "field": "TalentStatus31",
+          "canonical_key": "Architect:31",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 32,
+          "field": "TalentStatus32",
+          "canonical_key": "Architect:32",
+          "is_tree_root": false
+        }
+      ]
+    },
+    {
+      "tree_index": 5,
+      "internal_name": "SchemeGuru",
+      "display_name": "Scheme Guru",
+      "canonical_key": "SchemeGuru",
+      "nodes": [
+        {
+          "talent_index": 0,
+          "field": "TalentStatus0",
+          "canonical_key": "SchemeGuru:0",
+          "is_tree_root": true
+        },
+        {
+          "talent_index": 1,
+          "field": "TalentStatus1",
+          "canonical_key": "SchemeGuru:1",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 2,
+          "field": "TalentStatus2",
+          "canonical_key": "SchemeGuru:2",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 3,
+          "field": "TalentStatus3",
+          "canonical_key": "SchemeGuru:3",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 4,
+          "field": "TalentStatus4",
+          "canonical_key": "SchemeGuru:4",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 5,
+          "field": "TalentStatus5",
+          "canonical_key": "SchemeGuru:5",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 6,
+          "field": "TalentStatus6",
+          "canonical_key": "SchemeGuru:6",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 7,
+          "field": "TalentStatus7",
+          "canonical_key": "SchemeGuru:7",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 8,
+          "field": "TalentStatus8",
+          "canonical_key": "SchemeGuru:8",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 9,
+          "field": "TalentStatus9",
+          "canonical_key": "SchemeGuru:9",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 10,
+          "field": "TalentStatus10",
+          "canonical_key": "SchemeGuru:10",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 11,
+          "field": "TalentStatus11",
+          "canonical_key": "SchemeGuru:11",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 12,
+          "field": "TalentStatus12",
+          "canonical_key": "SchemeGuru:12",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 13,
+          "field": "TalentStatus13",
+          "canonical_key": "SchemeGuru:13",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 14,
+          "field": "TalentStatus14",
+          "canonical_key": "SchemeGuru:14",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 15,
+          "field": "TalentStatus15",
+          "canonical_key": "SchemeGuru:15",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 16,
+          "field": "TalentStatus16",
+          "canonical_key": "SchemeGuru:16",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 17,
+          "field": "TalentStatus17",
+          "canonical_key": "SchemeGuru:17",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 18,
+          "field": "TalentStatus18",
+          "canonical_key": "SchemeGuru:18",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 19,
+          "field": "TalentStatus19",
+          "canonical_key": "SchemeGuru:19",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 20,
+          "field": "TalentStatus20",
+          "canonical_key": "SchemeGuru:20",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 21,
+          "field": "TalentStatus21",
+          "canonical_key": "SchemeGuru:21",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 22,
+          "field": "TalentStatus22",
+          "canonical_key": "SchemeGuru:22",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 23,
+          "field": "TalentStatus23",
+          "canonical_key": "SchemeGuru:23",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 24,
+          "field": "TalentStatus24",
+          "canonical_key": "SchemeGuru:24",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 25,
+          "field": "TalentStatus25",
+          "canonical_key": "SchemeGuru:25",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 26,
+          "field": "TalentStatus26",
+          "canonical_key": "SchemeGuru:26",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 27,
+          "field": "TalentStatus27",
+          "canonical_key": "SchemeGuru:27",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 28,
+          "field": "TalentStatus28",
+          "canonical_key": "SchemeGuru:28",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 29,
+          "field": "TalentStatus29",
+          "canonical_key": "SchemeGuru:29",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 30,
+          "field": "TalentStatus30",
+          "canonical_key": "SchemeGuru:30",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 31,
+          "field": "TalentStatus31",
+          "canonical_key": "SchemeGuru:31",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 32,
+          "field": "TalentStatus32",
+          "canonical_key": "SchemeGuru:32",
+          "is_tree_root": false
+        }
+      ]
+    },
+    {
+      "tree_index": 6,
+      "internal_name": "Strategist",
+      "display_name": "Strategist",
+      "canonical_key": "Strategist",
+      "nodes": [
+        {
+          "talent_index": 0,
+          "field": "TalentStatus0",
+          "canonical_key": "Strategist:0",
+          "is_tree_root": true
+        },
+        {
+          "talent_index": 1,
+          "field": "TalentStatus1",
+          "canonical_key": "Strategist:1",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 2,
+          "field": "TalentStatus2",
+          "canonical_key": "Strategist:2",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 3,
+          "field": "TalentStatus3",
+          "canonical_key": "Strategist:3",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 4,
+          "field": "TalentStatus4",
+          "canonical_key": "Strategist:4",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 5,
+          "field": "TalentStatus5",
+          "canonical_key": "Strategist:5",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 6,
+          "field": "TalentStatus6",
+          "canonical_key": "Strategist:6",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 7,
+          "field": "TalentStatus7",
+          "canonical_key": "Strategist:7",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 8,
+          "field": "TalentStatus8",
+          "canonical_key": "Strategist:8",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 9,
+          "field": "TalentStatus9",
+          "canonical_key": "Strategist:9",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 10,
+          "field": "TalentStatus10",
+          "canonical_key": "Strategist:10",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 11,
+          "field": "TalentStatus11",
+          "canonical_key": "Strategist:11",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 12,
+          "field": "TalentStatus12",
+          "canonical_key": "Strategist:12",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 13,
+          "field": "TalentStatus13",
+          "canonical_key": "Strategist:13",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 14,
+          "field": "TalentStatus14",
+          "canonical_key": "Strategist:14",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 15,
+          "field": "TalentStatus15",
+          "canonical_key": "Strategist:15",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 16,
+          "field": "TalentStatus16",
+          "canonical_key": "Strategist:16",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 17,
+          "field": "TalentStatus17",
+          "canonical_key": "Strategist:17",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 18,
+          "field": "TalentStatus18",
+          "canonical_key": "Strategist:18",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 19,
+          "field": "TalentStatus19",
+          "canonical_key": "Strategist:19",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 20,
+          "field": "TalentStatus20",
+          "canonical_key": "Strategist:20",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 21,
+          "field": "TalentStatus21",
+          "canonical_key": "Strategist:21",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 22,
+          "field": "TalentStatus22",
+          "canonical_key": "Strategist:22",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 23,
+          "field": "TalentStatus23",
+          "canonical_key": "Strategist:23",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 24,
+          "field": "TalentStatus24",
+          "canonical_key": "Strategist:24",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 25,
+          "field": "TalentStatus25",
+          "canonical_key": "Strategist:25",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 26,
+          "field": "TalentStatus26",
+          "canonical_key": "Strategist:26",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 27,
+          "field": "TalentStatus27",
+          "canonical_key": "Strategist:27",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 28,
+          "field": "TalentStatus28",
+          "canonical_key": "Strategist:28",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 29,
+          "field": "TalentStatus29",
+          "canonical_key": "Strategist:29",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 30,
+          "field": "TalentStatus30",
+          "canonical_key": "Strategist:30",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 31,
+          "field": "TalentStatus31",
+          "canonical_key": "Strategist:31",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 32,
+          "field": "TalentStatus32",
+          "canonical_key": "Strategist:32",
+          "is_tree_root": false
+        }
+      ]
+    },
+    {
+      "tree_index": 7,
+      "internal_name": "EliteRecruiter",
+      "display_name": "Elite Recruiter",
+      "canonical_key": "EliteRecruiter",
+      "nodes": [
+        {
+          "talent_index": 0,
+          "field": "TalentStatus0",
+          "canonical_key": "EliteRecruiter:0",
+          "is_tree_root": true
+        },
+        {
+          "talent_index": 1,
+          "field": "TalentStatus1",
+          "canonical_key": "EliteRecruiter:1",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 2,
+          "field": "TalentStatus2",
+          "canonical_key": "EliteRecruiter:2",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 3,
+          "field": "TalentStatus3",
+          "canonical_key": "EliteRecruiter:3",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 4,
+          "field": "TalentStatus4",
+          "canonical_key": "EliteRecruiter:4",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 5,
+          "field": "TalentStatus5",
+          "canonical_key": "EliteRecruiter:5",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 6,
+          "field": "TalentStatus6",
+          "canonical_key": "EliteRecruiter:6",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 7,
+          "field": "TalentStatus7",
+          "canonical_key": "EliteRecruiter:7",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 8,
+          "field": "TalentStatus8",
+          "canonical_key": "EliteRecruiter:8",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 9,
+          "field": "TalentStatus9",
+          "canonical_key": "EliteRecruiter:9",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 10,
+          "field": "TalentStatus10",
+          "canonical_key": "EliteRecruiter:10",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 11,
+          "field": "TalentStatus11",
+          "canonical_key": "EliteRecruiter:11",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 12,
+          "field": "TalentStatus12",
+          "canonical_key": "EliteRecruiter:12",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 13,
+          "field": "TalentStatus13",
+          "canonical_key": "EliteRecruiter:13",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 14,
+          "field": "TalentStatus14",
+          "canonical_key": "EliteRecruiter:14",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 15,
+          "field": "TalentStatus15",
+          "canonical_key": "EliteRecruiter:15",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 16,
+          "field": "TalentStatus16",
+          "canonical_key": "EliteRecruiter:16",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 17,
+          "field": "TalentStatus17",
+          "canonical_key": "EliteRecruiter:17",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 18,
+          "field": "TalentStatus18",
+          "canonical_key": "EliteRecruiter:18",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 19,
+          "field": "TalentStatus19",
+          "canonical_key": "EliteRecruiter:19",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 20,
+          "field": "TalentStatus20",
+          "canonical_key": "EliteRecruiter:20",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 21,
+          "field": "TalentStatus21",
+          "canonical_key": "EliteRecruiter:21",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 22,
+          "field": "TalentStatus22",
+          "canonical_key": "EliteRecruiter:22",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 23,
+          "field": "TalentStatus23",
+          "canonical_key": "EliteRecruiter:23",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 24,
+          "field": "TalentStatus24",
+          "canonical_key": "EliteRecruiter:24",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 25,
+          "field": "TalentStatus25",
+          "canonical_key": "EliteRecruiter:25",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 26,
+          "field": "TalentStatus26",
+          "canonical_key": "EliteRecruiter:26",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 27,
+          "field": "TalentStatus27",
+          "canonical_key": "EliteRecruiter:27",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 28,
+          "field": "TalentStatus28",
+          "canonical_key": "EliteRecruiter:28",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 29,
+          "field": "TalentStatus29",
+          "canonical_key": "EliteRecruiter:29",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 30,
+          "field": "TalentStatus30",
+          "canonical_key": "EliteRecruiter:30",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 31,
+          "field": "TalentStatus31",
+          "canonical_key": "EliteRecruiter:31",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 32,
+          "field": "TalentStatus32",
+          "canonical_key": "EliteRecruiter:32",
+          "is_tree_root": false
+        }
+      ]
+    },
+    {
+      "tree_index": 8,
+      "internal_name": "TalentDeveloper",
+      "display_name": "Talent Developer",
+      "canonical_key": "TalentDeveloper",
+      "nodes": [
+        {
+          "talent_index": 0,
+          "field": "TalentStatus0",
+          "canonical_key": "TalentDeveloper:0",
+          "is_tree_root": true
+        },
+        {
+          "talent_index": 1,
+          "field": "TalentStatus1",
+          "canonical_key": "TalentDeveloper:1",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 2,
+          "field": "TalentStatus2",
+          "canonical_key": "TalentDeveloper:2",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 3,
+          "field": "TalentStatus3",
+          "canonical_key": "TalentDeveloper:3",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 4,
+          "field": "TalentStatus4",
+          "canonical_key": "TalentDeveloper:4",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 5,
+          "field": "TalentStatus5",
+          "canonical_key": "TalentDeveloper:5",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 6,
+          "field": "TalentStatus6",
+          "canonical_key": "TalentDeveloper:6",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 7,
+          "field": "TalentStatus7",
+          "canonical_key": "TalentDeveloper:7",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 8,
+          "field": "TalentStatus8",
+          "canonical_key": "TalentDeveloper:8",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 9,
+          "field": "TalentStatus9",
+          "canonical_key": "TalentDeveloper:9",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 10,
+          "field": "TalentStatus10",
+          "canonical_key": "TalentDeveloper:10",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 11,
+          "field": "TalentStatus11",
+          "canonical_key": "TalentDeveloper:11",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 12,
+          "field": "TalentStatus12",
+          "canonical_key": "TalentDeveloper:12",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 13,
+          "field": "TalentStatus13",
+          "canonical_key": "TalentDeveloper:13",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 14,
+          "field": "TalentStatus14",
+          "canonical_key": "TalentDeveloper:14",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 15,
+          "field": "TalentStatus15",
+          "canonical_key": "TalentDeveloper:15",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 16,
+          "field": "TalentStatus16",
+          "canonical_key": "TalentDeveloper:16",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 17,
+          "field": "TalentStatus17",
+          "canonical_key": "TalentDeveloper:17",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 18,
+          "field": "TalentStatus18",
+          "canonical_key": "TalentDeveloper:18",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 19,
+          "field": "TalentStatus19",
+          "canonical_key": "TalentDeveloper:19",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 20,
+          "field": "TalentStatus20",
+          "canonical_key": "TalentDeveloper:20",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 21,
+          "field": "TalentStatus21",
+          "canonical_key": "TalentDeveloper:21",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 22,
+          "field": "TalentStatus22",
+          "canonical_key": "TalentDeveloper:22",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 23,
+          "field": "TalentStatus23",
+          "canonical_key": "TalentDeveloper:23",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 24,
+          "field": "TalentStatus24",
+          "canonical_key": "TalentDeveloper:24",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 25,
+          "field": "TalentStatus25",
+          "canonical_key": "TalentDeveloper:25",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 26,
+          "field": "TalentStatus26",
+          "canonical_key": "TalentDeveloper:26",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 27,
+          "field": "TalentStatus27",
+          "canonical_key": "TalentDeveloper:27",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 28,
+          "field": "TalentStatus28",
+          "canonical_key": "TalentDeveloper:28",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 29,
+          "field": "TalentStatus29",
+          "canonical_key": "TalentDeveloper:29",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 30,
+          "field": "TalentStatus30",
+          "canonical_key": "TalentDeveloper:30",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 31,
+          "field": "TalentStatus31",
+          "canonical_key": "TalentDeveloper:31",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 32,
+          "field": "TalentStatus32",
+          "canonical_key": "TalentDeveloper:32",
+          "is_tree_root": false
+        }
+      ]
+    },
+    {
+      "tree_index": 9,
+      "internal_name": "Rainmaker",
+      "display_name": "Rainmaker",
+      "canonical_key": "Rainmaker",
+      "nodes": [
+        {
+          "talent_index": 0,
+          "field": "TalentStatus0",
+          "canonical_key": "Rainmaker:0",
+          "is_tree_root": true
+        },
+        {
+          "talent_index": 1,
+          "field": "TalentStatus1",
+          "canonical_key": "Rainmaker:1",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 2,
+          "field": "TalentStatus2",
+          "canonical_key": "Rainmaker:2",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 3,
+          "field": "TalentStatus3",
+          "canonical_key": "Rainmaker:3",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 4,
+          "field": "TalentStatus4",
+          "canonical_key": "Rainmaker:4",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 5,
+          "field": "TalentStatus5",
+          "canonical_key": "Rainmaker:5",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 6,
+          "field": "TalentStatus6",
+          "canonical_key": "Rainmaker:6",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 7,
+          "field": "TalentStatus7",
+          "canonical_key": "Rainmaker:7",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 8,
+          "field": "TalentStatus8",
+          "canonical_key": "Rainmaker:8",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 9,
+          "field": "TalentStatus9",
+          "canonical_key": "Rainmaker:9",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 10,
+          "field": "TalentStatus10",
+          "canonical_key": "Rainmaker:10",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 11,
+          "field": "TalentStatus11",
+          "canonical_key": "Rainmaker:11",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 12,
+          "field": "TalentStatus12",
+          "canonical_key": "Rainmaker:12",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 13,
+          "field": "TalentStatus13",
+          "canonical_key": "Rainmaker:13",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 14,
+          "field": "TalentStatus14",
+          "canonical_key": "Rainmaker:14",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 15,
+          "field": "TalentStatus15",
+          "canonical_key": "Rainmaker:15",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 16,
+          "field": "TalentStatus16",
+          "canonical_key": "Rainmaker:16",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 17,
+          "field": "TalentStatus17",
+          "canonical_key": "Rainmaker:17",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 18,
+          "field": "TalentStatus18",
+          "canonical_key": "Rainmaker:18",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 19,
+          "field": "TalentStatus19",
+          "canonical_key": "Rainmaker:19",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 20,
+          "field": "TalentStatus20",
+          "canonical_key": "Rainmaker:20",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 21,
+          "field": "TalentStatus21",
+          "canonical_key": "Rainmaker:21",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 22,
+          "field": "TalentStatus22",
+          "canonical_key": "Rainmaker:22",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 23,
+          "field": "TalentStatus23",
+          "canonical_key": "Rainmaker:23",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 24,
+          "field": "TalentStatus24",
+          "canonical_key": "Rainmaker:24",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 25,
+          "field": "TalentStatus25",
+          "canonical_key": "Rainmaker:25",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 26,
+          "field": "TalentStatus26",
+          "canonical_key": "Rainmaker:26",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 27,
+          "field": "TalentStatus27",
+          "canonical_key": "Rainmaker:27",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 28,
+          "field": "TalentStatus28",
+          "canonical_key": "Rainmaker:28",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 29,
+          "field": "TalentStatus29",
+          "canonical_key": "Rainmaker:29",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 30,
+          "field": "TalentStatus30",
+          "canonical_key": "Rainmaker:30",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 31,
+          "field": "TalentStatus31",
+          "canonical_key": "Rainmaker:31",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 32,
+          "field": "TalentStatus32",
+          "canonical_key": "Rainmaker:32",
+          "is_tree_root": false
+        }
+      ]
+    },
+    {
+      "tree_index": 10,
+      "internal_name": "Visionary",
+      "display_name": "Visionary",
+      "canonical_key": "Visionary",
+      "nodes": [
+        {
+          "talent_index": 0,
+          "field": "TalentStatus0",
+          "canonical_key": "Visionary:0",
+          "is_tree_root": true
+        },
+        {
+          "talent_index": 1,
+          "field": "TalentStatus1",
+          "canonical_key": "Visionary:1",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 2,
+          "field": "TalentStatus2",
+          "canonical_key": "Visionary:2",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 3,
+          "field": "TalentStatus3",
+          "canonical_key": "Visionary:3",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 4,
+          "field": "TalentStatus4",
+          "canonical_key": "Visionary:4",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 5,
+          "field": "TalentStatus5",
+          "canonical_key": "Visionary:5",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 6,
+          "field": "TalentStatus6",
+          "canonical_key": "Visionary:6",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 7,
+          "field": "TalentStatus7",
+          "canonical_key": "Visionary:7",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 8,
+          "field": "TalentStatus8",
+          "canonical_key": "Visionary:8",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 9,
+          "field": "TalentStatus9",
+          "canonical_key": "Visionary:9",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 10,
+          "field": "TalentStatus10",
+          "canonical_key": "Visionary:10",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 11,
+          "field": "TalentStatus11",
+          "canonical_key": "Visionary:11",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 12,
+          "field": "TalentStatus12",
+          "canonical_key": "Visionary:12",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 13,
+          "field": "TalentStatus13",
+          "canonical_key": "Visionary:13",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 14,
+          "field": "TalentStatus14",
+          "canonical_key": "Visionary:14",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 15,
+          "field": "TalentStatus15",
+          "canonical_key": "Visionary:15",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 16,
+          "field": "TalentStatus16",
+          "canonical_key": "Visionary:16",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 17,
+          "field": "TalentStatus17",
+          "canonical_key": "Visionary:17",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 18,
+          "field": "TalentStatus18",
+          "canonical_key": "Visionary:18",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 19,
+          "field": "TalentStatus19",
+          "canonical_key": "Visionary:19",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 20,
+          "field": "TalentStatus20",
+          "canonical_key": "Visionary:20",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 21,
+          "field": "TalentStatus21",
+          "canonical_key": "Visionary:21",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 22,
+          "field": "TalentStatus22",
+          "canonical_key": "Visionary:22",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 23,
+          "field": "TalentStatus23",
+          "canonical_key": "Visionary:23",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 24,
+          "field": "TalentStatus24",
+          "canonical_key": "Visionary:24",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 25,
+          "field": "TalentStatus25",
+          "canonical_key": "Visionary:25",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 26,
+          "field": "TalentStatus26",
+          "canonical_key": "Visionary:26",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 27,
+          "field": "TalentStatus27",
+          "canonical_key": "Visionary:27",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 28,
+          "field": "TalentStatus28",
+          "canonical_key": "Visionary:28",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 29,
+          "field": "TalentStatus29",
+          "canonical_key": "Visionary:29",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 30,
+          "field": "TalentStatus30",
+          "canonical_key": "Visionary:30",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 31,
+          "field": "TalentStatus31",
+          "canonical_key": "Visionary:31",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 32,
+          "field": "TalentStatus32",
+          "canonical_key": "Visionary:32",
+          "is_tree_root": false
+        }
+      ]
+    },
+    {
+      "tree_index": 11,
+      "internal_name": "ProgramBuilder",
+      "display_name": "Program Builder",
+      "canonical_key": "ProgramBuilder",
+      "nodes": [
+        {
+          "talent_index": 0,
+          "field": "TalentStatus0",
+          "canonical_key": "ProgramBuilder:0",
+          "is_tree_root": true
+        },
+        {
+          "talent_index": 1,
+          "field": "TalentStatus1",
+          "canonical_key": "ProgramBuilder:1",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 2,
+          "field": "TalentStatus2",
+          "canonical_key": "ProgramBuilder:2",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 3,
+          "field": "TalentStatus3",
+          "canonical_key": "ProgramBuilder:3",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 4,
+          "field": "TalentStatus4",
+          "canonical_key": "ProgramBuilder:4",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 5,
+          "field": "TalentStatus5",
+          "canonical_key": "ProgramBuilder:5",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 6,
+          "field": "TalentStatus6",
+          "canonical_key": "ProgramBuilder:6",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 7,
+          "field": "TalentStatus7",
+          "canonical_key": "ProgramBuilder:7",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 8,
+          "field": "TalentStatus8",
+          "canonical_key": "ProgramBuilder:8",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 9,
+          "field": "TalentStatus9",
+          "canonical_key": "ProgramBuilder:9",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 10,
+          "field": "TalentStatus10",
+          "canonical_key": "ProgramBuilder:10",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 11,
+          "field": "TalentStatus11",
+          "canonical_key": "ProgramBuilder:11",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 12,
+          "field": "TalentStatus12",
+          "canonical_key": "ProgramBuilder:12",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 13,
+          "field": "TalentStatus13",
+          "canonical_key": "ProgramBuilder:13",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 14,
+          "field": "TalentStatus14",
+          "canonical_key": "ProgramBuilder:14",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 15,
+          "field": "TalentStatus15",
+          "canonical_key": "ProgramBuilder:15",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 16,
+          "field": "TalentStatus16",
+          "canonical_key": "ProgramBuilder:16",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 17,
+          "field": "TalentStatus17",
+          "canonical_key": "ProgramBuilder:17",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 18,
+          "field": "TalentStatus18",
+          "canonical_key": "ProgramBuilder:18",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 19,
+          "field": "TalentStatus19",
+          "canonical_key": "ProgramBuilder:19",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 20,
+          "field": "TalentStatus20",
+          "canonical_key": "ProgramBuilder:20",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 21,
+          "field": "TalentStatus21",
+          "canonical_key": "ProgramBuilder:21",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 22,
+          "field": "TalentStatus22",
+          "canonical_key": "ProgramBuilder:22",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 23,
+          "field": "TalentStatus23",
+          "canonical_key": "ProgramBuilder:23",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 24,
+          "field": "TalentStatus24",
+          "canonical_key": "ProgramBuilder:24",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 25,
+          "field": "TalentStatus25",
+          "canonical_key": "ProgramBuilder:25",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 26,
+          "field": "TalentStatus26",
+          "canonical_key": "ProgramBuilder:26",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 27,
+          "field": "TalentStatus27",
+          "canonical_key": "ProgramBuilder:27",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 28,
+          "field": "TalentStatus28",
+          "canonical_key": "ProgramBuilder:28",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 29,
+          "field": "TalentStatus29",
+          "canonical_key": "ProgramBuilder:29",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 30,
+          "field": "TalentStatus30",
+          "canonical_key": "ProgramBuilder:30",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 31,
+          "field": "TalentStatus31",
+          "canonical_key": "ProgramBuilder:31",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 32,
+          "field": "TalentStatus32",
+          "canonical_key": "ProgramBuilder:32",
+          "is_tree_root": false
+        }
+      ]
+    },
+    {
+      "tree_index": 12,
+      "internal_name": "CEO",
+      "display_name": "CEO",
+      "canonical_key": "CEO",
+      "nodes": [
+        {
+          "talent_index": 0,
+          "field": "TalentStatus0",
+          "canonical_key": "CEO:0",
+          "is_tree_root": true
+        },
+        {
+          "talent_index": 1,
+          "field": "TalentStatus1",
+          "canonical_key": "CEO:1",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 2,
+          "field": "TalentStatus2",
+          "canonical_key": "CEO:2",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 3,
+          "field": "TalentStatus3",
+          "canonical_key": "CEO:3",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 4,
+          "field": "TalentStatus4",
+          "canonical_key": "CEO:4",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 5,
+          "field": "TalentStatus5",
+          "canonical_key": "CEO:5",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 6,
+          "field": "TalentStatus6",
+          "canonical_key": "CEO:6",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 7,
+          "field": "TalentStatus7",
+          "canonical_key": "CEO:7",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 8,
+          "field": "TalentStatus8",
+          "canonical_key": "CEO:8",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 9,
+          "field": "TalentStatus9",
+          "canonical_key": "CEO:9",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 10,
+          "field": "TalentStatus10",
+          "canonical_key": "CEO:10",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 11,
+          "field": "TalentStatus11",
+          "canonical_key": "CEO:11",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 12,
+          "field": "TalentStatus12",
+          "canonical_key": "CEO:12",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 13,
+          "field": "TalentStatus13",
+          "canonical_key": "CEO:13",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 14,
+          "field": "TalentStatus14",
+          "canonical_key": "CEO:14",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 15,
+          "field": "TalentStatus15",
+          "canonical_key": "CEO:15",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 16,
+          "field": "TalentStatus16",
+          "canonical_key": "CEO:16",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 17,
+          "field": "TalentStatus17",
+          "canonical_key": "CEO:17",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 18,
+          "field": "TalentStatus18",
+          "canonical_key": "CEO:18",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 19,
+          "field": "TalentStatus19",
+          "canonical_key": "CEO:19",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 20,
+          "field": "TalentStatus20",
+          "canonical_key": "CEO:20",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 21,
+          "field": "TalentStatus21",
+          "canonical_key": "CEO:21",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 22,
+          "field": "TalentStatus22",
+          "canonical_key": "CEO:22",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 23,
+          "field": "TalentStatus23",
+          "canonical_key": "CEO:23",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 24,
+          "field": "TalentStatus24",
+          "canonical_key": "CEO:24",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 25,
+          "field": "TalentStatus25",
+          "canonical_key": "CEO:25",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 26,
+          "field": "TalentStatus26",
+          "canonical_key": "CEO:26",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 27,
+          "field": "TalentStatus27",
+          "canonical_key": "CEO:27",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 28,
+          "field": "TalentStatus28",
+          "canonical_key": "CEO:28",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 29,
+          "field": "TalentStatus29",
+          "canonical_key": "CEO:29",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 30,
+          "field": "TalentStatus30",
+          "canonical_key": "CEO:30",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 31,
+          "field": "TalentStatus31",
+          "canonical_key": "CEO:31",
+          "is_tree_root": false
+        },
+        {
+          "talent_index": 32,
+          "field": "TalentStatus32",
+          "canonical_key": "CEO:32",
+          "is_tree_root": false
+        }
+      ]
+    }
+  ]
+}

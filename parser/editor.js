@@ -7,6 +7,22 @@ import { TABLE_IDS } from "./table_ids.js";
 import { ensureCoachTableSchema } from "./coach_schema_compat.js";
 import { writeCfb27DynastySave } from "./cfb27_safe_writer.js";
 import { getPlayerHeadProfile, applyPlayerHeadProfilePreserveGear } from "./character_visuals.js";
+import { DEFAULT_HEAD_CATALOG_PATH, HeadCatalog, detectHeadIdentity } from "./head_catalog.js";
+import {
+    CFP_FIRST_ROUND_BRACKET_SLOTS,
+    CFP_FIRST_ROUND_SEEDS,
+    planCfpFirstRoundSeedAssignments,
+    planCfpFirstRoundTeamSwap,
+    planCfpGameParticipantPermutation,
+    validateCfpFirstRoundSlots
+} from "./cfp_bracket.js";
+import {
+    buildCoachTalentCatalog,
+    enrichCoachTalentTreeSnapshot,
+    getCoachTalentTreeIndex,
+    resolveCoachTalentIdentifier
+} from "./coach_talents.js";
+import { evaluateRedshirtConsistency, getCurrentSeasonGamesPlayed } from "./redshirt_consistency.js";
 
 const DEFAULT_SCHEMA_DIRECTORY = fileURLToPath(new URL("./schemas/", import.meta.url));
 const ZERO_REFERENCE = "0".repeat(32);
@@ -90,6 +106,25 @@ const TEAM_PROGRAM_POINT_GRADE_FIELDS = {
     conferencePrestige: "ProgramPointsConferencePrestigeGrade"
 };
 
+// -------------------- GAME-VERIFIED MY SCHOOL GRADE AUTHORITY --------------------
+// The CFB27 My School screen does not use Team.ProgramPointsStadiumAtmosphereGrade
+// as the displayed Stadium Atmosphere authority. A real-save isolated test proved
+// MySchoolTrackingTable.StadiumAtmosphereGrade controls the visible grade.
+const MY_SCHOOL_DISPLAY_GRADE_ALIASES = {
+    stadiumAtmosphere: "StadiumAtmosphereGrade"
+};
+
+function resolveFlatTeamGradeTarget(key) {
+    if (Object.hasOwn(MY_SCHOOL_DISPLAY_GRADE_ALIASES, key)) {
+        return { group: "mySchool", field: MY_SCHOOL_DISPLAY_GRADE_ALIASES[key] };
+    }
+    const field = TEAM_PROGRAM_POINT_GRADE_FIELDS[key] ?? key;
+    if (Object.values(TEAM_PROGRAM_POINT_GRADE_FIELDS).includes(field)) {
+        return { group: "programPoints", field };
+    }
+    return null;
+}
+
 // These are the direct grades shown by the CFB27 My School recruiting system.
 // Pro Potential is position-specific in the save, so all stored position groups are retained.
 const MY_SCHOOL_GRADE_FIELDS = [
@@ -156,17 +191,21 @@ const PLAYER_ALIAS_FIELDS = {
     redshirtStatus: "RedshirtStatus",
     developmentTrait: "TraitDevelopment",
     skillPoints: "SkillPoints",
-    experiencePoints: "ExperiencePoints",
-    hometown: "PLYR_HOME_TOWN",
-    homeState: "PLYR_HOME_STATE",
-    age: "Age",
-    prospectStarRating: "ProspectStarRating",
-    handedness: "PLYR_HANDEDNESS",
-    stance: "PLYR_STANCE",
-    bodyType: "CharacterBodyType",
-    genericHead: "PLYR_GENERICHEAD",
-    genericHeadAssetName: "GenericHeadAssetName"
+    experiencePoints: "ExperiencePoints"
 };
+
+const PLAYER_HEAD_IDENTITY_FIELDS = new Set([
+    "PLYR_ASSETNAME",
+    "GenericHeadAssetName",
+    "PLYR_GENERICHEAD",
+    "PLYR_PORTRAIT",
+    "PortraitSwappableLibraryPath",
+    "PortraitForceSilhouette"
+]);
+
+const PLAYER_SAFE_APPEARANCE_FIELDS = PLAYER_APPEARANCE_FIELDS.filter(
+    fieldName => !PLAYER_HEAD_IDENTITY_FIELDS.has(fieldName)
+);
 
 const COACH_ALIAS_FIELDS = {
     firstName: "FirstName",
@@ -267,6 +306,31 @@ function validateFieldValue(record, fieldName, value) {
     return value;
 }
 
+function validatePlayerBusinessRule(key, value) {
+    if (["firstName", "lastName"].includes(key) && !String(value ?? "").trim()) {
+        throw new Error(`${key} cannot be blank`);
+    }
+    if (key === "jerseyNumber") {
+        const number = normalizeNumber(value, key);
+        if (!Number.isInteger(number) || number < 0 || number > 99) {
+            throw new Error("jerseyNumber must be an integer from 0 to 99");
+        }
+    }
+    if (key === "overallRating") {
+        const number = normalizeNumber(value, key);
+        if (!Number.isInteger(number) || number < 0 || number > 99) {
+            throw new Error("overallRating must be an integer from 0 to 99");
+        }
+    }
+    if (key === "heightInches") {
+        const number = normalizeNumber(value, key);
+        if (!Number.isInteger(number) || number < 60 || number > 90) {
+            throw new Error("heightInches must be an integer from 60 to 90");
+        }
+    }
+    return value;
+}
+
 function createReference(table, rowNumber) {
     if (!table?.header?.tableId) throw new Error("Cannot create reference without table id");
     if (!Number.isInteger(rowNumber) || rowNumber < 0 || rowNumber > 131071) {
@@ -284,27 +348,31 @@ function copyJson(value) {
 }
 
 function coachTalentTreeIndex(value) {
-    if (Number.isInteger(value)) {
-        if (value < 0 || value >= COACH_TALENT_TREE_NAMES.length) {
-            throw new Error(`Invalid coach talent tree index: ${value}`);
-        }
-        return value;
-    }
-    const text = String(value ?? "").replace(/[^a-z0-9]/gi, "").toLowerCase();
-    const index = COACH_TALENT_TREE_NAMES.findIndex(
-        name => name.replace(/[^a-z0-9]/gi, "").toLowerCase() === text
-    );
-    if (index === -1) throw new Error(`Unknown coach talent tree: ${value}`);
-    return index;
+    return getCoachTalentTreeIndex(value);
 }
 
 export class FieldIndexEditor {
-    constructor(franchise, savePath, schemaDirectory) {
+    constructor(franchise, savePath, schemaDirectory, options = {}) {
         this.franchise = franchise;
         this.savePath = savePath;
         this.schemaDirectory = schemaDirectory;
         this.changeLog = [];
         this.tables = {};
+        this.allowUnsafeRawFields = options.allowUnsafeRawFields === true;
+        this.headCatalog = HeadCatalog.load(
+            options.headCatalogPath ?? DEFAULT_HEAD_CATALOG_PATH,
+            { allowMissing: true }
+        );
+        this.coachTalentCatalog = {
+            format: "field_index_coach_talent_catalog",
+            version: 1,
+            source: "live_save",
+            available: false,
+            trees: [],
+            definitions: [],
+            treeCount: 0,
+            talentCount: 0
+        };
     }
 
     static async open(savePath, options = {}) {
@@ -316,8 +384,9 @@ export class FieldIndexEditor {
         if (franchise.gameType !== "college" || franchise.gameYear !== 27) {
             throw new Error("Field Index editor requires a valid CFB27 Dynasty save");
         }
-        const editor = new FieldIndexEditor(franchise, savePath, schemaDirectory);
+        const editor = new FieldIndexEditor(franchise, savePath, schemaDirectory, options);
         await editor.#loadCoreTables();
+        editor.coachTalentCatalog = await buildCoachTalentCatalog(franchise);
         return editor;
     }
 
@@ -330,6 +399,7 @@ export class FieldIndexEditor {
 
     async #loadCoreTables() {
         this.tables.player = await this.#readTable(TABLE_IDS.Player);
+        this.tables.seasonInfo = await this.#readTable(TABLE_IDS.SeasonInfo);
 
         const rawCoachTable = this.franchise.getTableByUniqueId(TABLE_IDS.Coach);
         this.coachSchemaCompatibility = ensureCoachTableSchema(this.franchise, rawCoachTable);
@@ -358,6 +428,37 @@ export class FieldIndexEditor {
         const record = this.tables.player.records[playerRow];
         if (!record || record.isEmpty) throw new Error(`Player row ${playerRow} not found`);
         return record;
+    }
+
+    #currentSeasonIndex() {
+        const seasonInfo = this.tables.seasonInfo?.records?.find(record => !record.isEmpty) ?? null;
+        const currentSeasonYear = seasonInfo?.CurrentSeasonYear;
+        return Number.isInteger(currentSeasonYear) ? currentSeasonYear - 2026 : null;
+    }
+
+    async #playerSeasonStats(playerRow) {
+        const player = this.#playerRecord(playerRow);
+        const seasonStatsArray = await this.#referencedRecord(player, "SeasonStats");
+        if (!seasonStatsArray || seasonStatsArray.isEmpty) return [];
+
+        const seasonStats = [];
+        for (let index = 0; index < seasonStatsArray.arraySize; index++) {
+            const fieldName = `SeasonStats${index}`;
+            const reference = seasonStatsArray.getReferenceDataByKey(fieldName);
+            if (!reference || reference.tableId === 0) continue;
+            const table = this.franchise.getTableById(reference.tableId);
+            if (!table) continue;
+            if (!table.recordsRead) await table.readRecords();
+            const statRecord = table.records[reference.rowNumber];
+            if (!statRecord || statRecord.isEmpty) continue;
+            seasonStats.push({
+                seasonYear: statRecord.SEAS_YEAR,
+                teamIndex: statRecord.YEARBYYEARTEAMINDEX,
+                gamesPlayed: statRecord.GAMESPLAYED ?? 0,
+                statType: statRecord._parent?.name ?? null
+            });
+        }
+        return seasonStats;
     }
 
     #coachRecord(coachRow) {
@@ -571,8 +672,24 @@ export class FieldIndexEditor {
         };
     }
 
+    async getPlayerRedshirtConsistency(playerRow, proposedRedshirtStatus = undefined) {
+        const record = this.#playerRecord(playerRow);
+        const currentSeasonIndex = this.#currentSeasonIndex();
+        const seasonStats = await this.#playerSeasonStats(playerRow);
+        const gamesPlayed = getCurrentSeasonGamesPlayed(seasonStats, currentSeasonIndex);
+        return {
+            playerRow,
+            currentSeasonIndex,
+            ...evaluateRedshirtConsistency({
+                redshirtStatus: proposedRedshirtStatus ?? record.RedshirtStatus,
+                gamesPlayed
+            })
+        };
+    }
+
     async getPlayer(playerRow) {
         const record = this.#playerRecord(playerRow);
+        const redshirtConsistency = await this.getPlayerRedshirtConsistency(playerRow);
         return {
             playerRow: record.index,
             firstName: record.FirstName,
@@ -587,9 +704,12 @@ export class FieldIndexEditor {
             weight: (record.Weight ?? 0) + 160,
             classYear: record.SchoolYear,
             redshirtStatus: record.RedshirtStatus,
+            currentSeasonGamesPlayed: redshirtConsistency.gamesPlayed,
+            redshirtConsistency,
             developmentTrait: record.TraitDevelopment,
             attributes: this.#playerAttributeSnapshot(record),
             abilities: this.#playerAbilitySnapshot(record),
+            head: this.getPlayerHeadId(playerRow),
             appearance: await this.getPlayerAppearance(playerRow)
         };
     }
@@ -626,7 +746,10 @@ export class FieldIndexEditor {
             coachPrestigeScore: record.CoachPrestigeScore,
             coachPoints: record.CoachPoints ?? 0,
             experiencePoints: record.ExperiencePoints ?? 0,
-            talentTree: this.#coachTalentTreeSnapshot(record),
+            talentTree: enrichCoachTalentTreeSnapshot(
+                this.#coachTalentTreeSnapshot(record),
+                this.coachTalentCatalog
+            ),
             heightInches: record.Height,
             weight: (record.Weight ?? 0) + 160,
             appearance: await this.getCoachAppearance(coachRow)
@@ -656,6 +779,14 @@ export class FieldIndexEditor {
             const meta = fieldMetadata(record, fieldName);
             if (meta) aliases[alias] = { ...meta, value: alias === "weight" ? (record.Weight ?? 0) + 160 : record[fieldName] };
         }
+        const weightMeta = fieldMetadata(record, "Weight");
+        if (weightMeta) aliases.weight = {
+            ...weightMeta,
+            minValue: 160,
+            maxValue: 415,
+            value: (record.Weight ?? 0) + 160,
+            storedOffset: -160
+        };
         const ratings = record._offsetTable
             .filter(field => field.name === "OverallRating" || field.name.endsWith("Rating"))
             .map(field => ({ ...fieldMetadata(record, field.name), value: record[field.name] }));
@@ -687,7 +818,7 @@ export class FieldIndexEditor {
                 physical: physicalAbilities,
                 mental: mentalAbilities
             },
-            appearance: this.#recordScalarSchema(record, PLAYER_APPEARANCE_FIELDS)
+            appearance: this.#recordScalarSchema(record, PLAYER_SAFE_APPEARANCE_FIELDS)
         };
     }
 
@@ -695,8 +826,15 @@ export class FieldIndexEditor {
         return this.#playerAbilitySnapshot(this.#playerRecord(playerRow));
     }
 
+    getCoachTalentCatalog() {
+        return copyJson(this.coachTalentCatalog);
+    }
+
     getCoachTalentTree(coachRow) {
-        return this.#coachTalentTreeSnapshot(this.#coachRecord(coachRow));
+        return enrichCoachTalentTreeSnapshot(
+            this.#coachTalentTreeSnapshot(this.#coachRecord(coachRow)),
+            this.coachTalentCatalog
+        );
     }
 
     getCoachEditSchema(coachRow) {
@@ -713,7 +851,11 @@ export class FieldIndexEditor {
         }
         return {
             aliases,
-            talentTree: this.#coachTalentTreeSnapshot(record),
+            talentTree: enrichCoachTalentTreeSnapshot(
+                this.#coachTalentTreeSnapshot(record),
+                this.coachTalentCatalog
+            ),
+            talentCatalog: copyJson(this.coachTalentCatalog),
             appearance: this.#recordScalarSchema(record, COACH_APPEARANCE_FIELDS)
         };
     }
@@ -722,12 +864,20 @@ export class FieldIndexEditor {
         const applied = [];
         for (const [key, requestedValue] of Object.entries(changes ?? {})) {
             if (["ratings", "rawFields", "weight", "abilities", "talentTree"].includes(key)) continue;
-            const fieldName = aliases[key] ?? key;
-            if (!record.getFieldByKey(fieldName)) throw new Error(`${entityLabel}: unknown editable field ${key}`);
-            const value = validateFieldValue(record, fieldName, requestedValue);
+            const fieldName = aliases[key];
+            if (!fieldName) {
+                throw new Error(`${entityLabel}: unsupported production edit field ${key}`);
+            }
+            if (!record.getFieldByKey(fieldName)) {
+                throw new Error(`${entityLabel}: field ${fieldName} is unavailable in this save`);
+            }
+            const businessValidated = aliases === PLAYER_ALIAS_FIELDS
+                ? validatePlayerBusinessRule(key, requestedValue)
+                : requestedValue;
+            const value = validateFieldValue(record, fieldName, businessValidated);
             const before = record[fieldName];
             record[fieldName] = value;
-            applied.push({ field: fieldName, before, after: record[fieldName] });
+            applied.push({ field: fieldName, alias: key, before, after: record[fieldName] });
         }
         return applied;
     }
@@ -949,9 +1099,28 @@ export class FieldIndexEditor {
             }
 
             for (const [talentKey, requestedStatus] of Object.entries(requested.talents ?? {})) {
-                const talentIndex = Number(talentKey);
-                if (!Number.isInteger(talentIndex) || talentIndex < 0 || talentIndex > 32) {
-                    throw new Error("Coach talent node index must be 0-32");
+                const numericKey = /^\d+$/.test(String(talentKey));
+                let talentIndex;
+                let talentDefinition = null;
+                if (numericKey) {
+                    talentIndex = Number(talentKey);
+                    if (!Number.isInteger(talentIndex) || talentIndex < 0 || talentIndex > 32) {
+                        throw new Error("Coach talent node index must be 0-32");
+                    }
+                } else {
+                    if (!this.coachTalentCatalog?.available) {
+                        throw new Error(
+                            `Named coach talent editing requires the live CFB27 TalentSubTree catalog; ` +
+                            `use a numeric talent index when the catalog is unavailable`
+                        );
+                    }
+                    const resolved = resolveCoachTalentIdentifier(
+                        this.coachTalentCatalog,
+                        treeIndex,
+                        talentKey
+                    );
+                    talentIndex = resolved.talentIndex;
+                    talentDefinition = resolved.talent;
                 }
                 if (!TALENT_STATUS_VALUES.includes(requestedStatus)) {
                     throw new Error(`Talent status must be one of: ${TALENT_STATUS_VALUES.join(", ")}`);
@@ -964,6 +1133,7 @@ export class FieldIndexEditor {
                     treeIndex,
                     treeName: tree.treeName,
                     talentIndex,
+                    talentName: talentDefinition?.name ?? null,
                     field: fieldName,
                     before,
                     after: subTree[fieldName]
@@ -979,6 +1149,46 @@ export class FieldIndexEditor {
         const applied = this.#applyCoachTalentTreeChanges(record, changes);
         this.changeLog.push({ type: "coachTalentTree", coachRow, changes: applied });
         return applied;
+    }
+
+    setCoachPoints(coachRow, coachPoints) {
+        return this.editCoach(coachRow, { coachPoints });
+    }
+
+    setCoachExperiencePoints(coachRow, experiencePoints) {
+        return this.editCoach(coachRow, { experiencePoints });
+    }
+
+    setCoachTalentTreeState(coachRow, tree, state, options = {}) {
+        return this.editCoachTalentTree(coachRow, {
+            trees: {
+                [tree]: { state, force: options.force === true }
+            }
+        });
+    }
+
+    unlockCoachTalentTree(coachRow, tree) {
+        return this.setCoachTalentTreeState(coachRow, tree, "Unlocked");
+    }
+
+    makeCoachTalentTreePurchasable(coachRow, tree, options = {}) {
+        return this.setCoachTalentTreeState(coachRow, tree, "Purchasable", options);
+    }
+
+    lockCoachTalentTree(coachRow, tree, options = {}) {
+        return this.setCoachTalentTreeState(coachRow, tree, "Locked", options);
+    }
+
+    setCoachTalentStatus(coachRow, tree, talent, status) {
+        return this.editCoachTalentTree(coachRow, {
+            trees: {
+                [tree]: { talents: { [talent]: status } }
+            }
+        });
+    }
+
+    unlockCoachTalent(coachRow, tree, talent) {
+        return this.setCoachTalentStatus(coachRow, tree, talent, "Owned");
     }
 
     editPlayer(playerRow, changes = {}) {
@@ -1009,12 +1219,20 @@ export class FieldIndexEditor {
                 throw new Error(`Player ${playerRow}: ${fieldName} is not a rating field`);
             }
             if (!record.getFieldByKey(fieldName)) throw new Error(`Player ${playerRow}: unknown rating ${fieldName}`);
+            const rating = normalizeNumber(requestedValue, fieldName);
+            if (!Number.isInteger(rating) || rating < 0 || rating > 99) {
+                throw new Error(`${fieldName} must be an integer from 0 to 99`);
+            }
             const before = record[fieldName];
-            record[fieldName] = validateFieldValue(record, fieldName, requestedValue);
+            record[fieldName] = validateFieldValue(record, fieldName, rating);
             applied.push({ field: fieldName, before, after: record[fieldName] });
         }
 
-        for (const [fieldName, requestedValue] of Object.entries(changes.rawFields ?? {})) {
+        const rawFieldEntries = Object.entries(changes.rawFields ?? {});
+        if (rawFieldEntries.length > 0 && !this.allowUnsafeRawFields) {
+            throw new Error("rawFields are disabled in production editing. Use the supported player edit whitelist.");
+        }
+        for (const [fieldName, requestedValue] of rawFieldEntries) {
             const field = record.getFieldByKey(fieldName);
             if (!field) throw new Error(`Player ${playerRow}: unknown raw field ${fieldName}`);
             if (field.isReference) throw new Error(`Player ${playerRow}: reference field ${fieldName} is not allowed in rawFields`);
@@ -1045,6 +1263,9 @@ export class FieldIndexEditor {
             if (!PLAYER_APPEARANCE_FIELDS.includes(fieldName)) {
                 throw new Error(`Player appearance field ${key} is not supported`);
             }
+            if (PLAYER_HEAD_IDENTITY_FIELDS.has(fieldName)) {
+                throw new Error(`${fieldName} is controlled by the Head ID service and cannot be edited directly`);
+            }
             const before = record[fieldName];
             record[fieldName] = validateFieldValue(record, fieldName, value);
             applied.push({ field: fieldName, before, after: record[fieldName] });
@@ -1053,38 +1274,117 @@ export class FieldIndexEditor {
         return applied;
     }
 
+    // -------------------- PLAYER HEAD ID SERVICE --------------------
+    getPlayerHeadId(playerRow) {
+        const record = this.#playerRecord(playerRow);
+        const identity = detectHeadIdentity(record);
+        let catalogEntry = null;
+
+        if (identity.canonicalKey) {
+            try {
+                catalogEntry = this.headCatalog.resolve(identity.canonicalKey);
+            } catch {
+                catalogEntry = null;
+            }
+        }
+
+        return {
+            headId: identity.headId,
+            headType: identity.headType,
+            canonicalKey: identity.canonicalKey,
+            assetName: identity.assetName,
+            genericHeadAssetName: identity.genericHeadAssetName,
+            knownFormat: identity.knownFormat,
+            catalogKnown: Boolean(catalogEntry),
+            catalogUsable: Boolean(
+                catalogEntry?.profile_complete
+                && catalogEntry?.portrait_id !== null
+            ),
+            portraitId: record.PLYR_PORTRAIT ?? null,
+            portraitAssetPath: catalogEntry?.portrait_asset_path ?? null
+        };
+    }
+
+    getHeadById(headId, options = {}) {
+        return this.headCatalog.resolve(headId, options);
+    }
+
+    listHeadIds(options = {}) {
+        return this.headCatalog.list(options);
+    }
+
     async getPlayerHeadProfile(playerRow) {
         const record = this.#playerRecord(playerRow);
         return getPlayerHeadProfile(this.franchise, record);
     }
 
-    async setPlayerHeadId(playerRow, headProfile) {
+    async setPlayerHeadProfile(playerRow, headProfile, options = {}) {
         const record = this.#playerRecord(playerRow);
-        const requiredFields = ["PLYR_ASSETNAME", "GenericHeadAssetName", "PLYR_PORTRAIT"];
+        const beforeIdentity = detectHeadIdentity(record);
+        const requestedHeadType = String(headProfile?.headType ?? "").trim().toLowerCase();
+        if (!["unique", "generic"].includes(requestedHeadType)) {
+            throw new Error("Head profile must identify a unique or generic destination head type");
+        }
+
         const profileValues = {
-            PLYR_ASSETNAME: headProfile?.assetName,
-            GenericHeadAssetName: headProfile?.genericHeadAssetName,
-            PLYR_PORTRAIT: headProfile?.portrait
+            GenericHeadAssetName: headProfile?.genericHeadAssetName
         };
 
-        for (const fieldName of requiredFields) {
-            if (profileValues[fieldName] === undefined || profileValues[fieldName] === null) {
-                throw new Error(`Head profile is missing ${fieldName}`);
-            }
+        if (requestedHeadType === "unique") {
+            profileValues.PLYR_ASSETNAME = headProfile?.assetName;
+        } else if (beforeIdentity.headType === "unique") {
+            // Generic heads do not have a canonical PLYR_ASSETNAME. Clear a stale
+            // unique-head asset when crossing unique -> generic; preserve an
+            // existing generic player's player-specific asset name otherwise.
+            profileValues.PLYR_ASSETNAME = "";
         }
 
-        const applied = [];
-        for (const [fieldName, requestedValue] of Object.entries(profileValues)) {
-            const before = record[fieldName];
-            record[fieldName] = validateFieldValue(record, fieldName, requestedValue);
-            applied.push({ field: fieldName, before, after: record[fieldName] });
+        if (headProfile?.portrait !== null && headProfile?.portrait !== undefined) {
+            profileValues.PLYR_PORTRAIT = headProfile.portrait;
+        } else if (!options.allowMissingPortrait) {
+            throw new Error("Head profile is missing PLYR_PORTRAIT");
         }
 
-        const visuals = await applyPlayerHeadProfilePreserveGear(
-            this.franchise,
-            record,
-            headProfile
+        if (profileValues.GenericHeadAssetName === undefined || profileValues.GenericHeadAssetName === null) {
+            throw new Error("Head profile is missing GenericHeadAssetName");
+        }
+        if (requestedHeadType === "unique" && (profileValues.PLYR_ASSETNAME === undefined || profileValues.PLYR_ASSETNAME === null)) {
+            throw new Error("Unique Head profile is missing PLYR_ASSETNAME");
+        }
+
+        const validatedValues = Object.fromEntries(
+            Object.entries(profileValues).map(([fieldName, requestedValue]) => [
+                fieldName,
+                validateFieldValue(record, fieldName, requestedValue)
+            ])
         );
+        const scalarBefore = Object.fromEntries(
+            Object.keys(validatedValues).map(fieldName => [fieldName, record[fieldName]])
+        );
+        const applied = [];
+        let visuals;
+
+        try {
+            for (const [fieldName, validatedValue] of Object.entries(validatedValues)) {
+                record[fieldName] = validatedValue;
+                applied.push({
+                    field: fieldName,
+                    before: scalarBefore[fieldName],
+                    after: record[fieldName]
+                });
+            }
+
+            visuals = await applyPlayerHeadProfilePreserveGear(
+                this.franchise,
+                record,
+                headProfile
+            );
+        } catch (error) {
+            for (const [fieldName, beforeValue] of Object.entries(scalarBefore)) {
+                record[fieldName] = beforeValue;
+            }
+            throw error;
+        }
 
         applied.push({
             field: "CharacterVisuals.Head",
@@ -1093,30 +1393,73 @@ export class FieldIndexEditor {
                 plusHeadCount: visuals.plusHeadAfter,
                 skinTone: headProfile.skinTone
             },
-            preservesGear: true
+            preservesGear: true,
+            headLoadoutCreated: visuals.headLoadoutCreated
+        });
+
+        return {
+            playerRow,
+            headId: headProfile.headId ?? null,
+            canonicalKey: headProfile.canonicalKey ?? null,
+            sourcePlayerRow: headProfile.sourcePlayerRow ?? null,
+            sourcePlayerName: headProfile.sourcePlayerName ?? null,
+            changes: applied,
+            characterVisuals: visuals,
+            missingPortraitPreserved: headProfile?.portrait === null || headProfile?.portrait === undefined
+        };
+    }
+
+    async setPlayerHeadId(playerRow, headId, options = {}) {
+        const before = this.getPlayerHeadId(playerRow);
+        const profile = this.headCatalog.profileFor(headId, {
+            headType: options.headType,
+            allowMissingPortrait: Boolean(options.allowMissingPortrait)
+        });
+
+        if (!options.force && before.canonicalKey === profile.canonicalKey) {
+            return {
+                playerRow,
+                headId: profile.headId,
+                canonicalKey: profile.canonicalKey,
+                noOp: true,
+                reason: "Player already uses this Head ID",
+                changes: []
+            };
+        }
+
+        const result = await this.setPlayerHeadProfile(playerRow, profile, {
+            allowMissingPortrait: Boolean(options.allowMissingPortrait)
         });
 
         this.changeLog.push({
             type: "playerHeadId",
             playerRow,
-            sourcePlayerRow: headProfile.sourcePlayerRow ?? null,
-            sourcePlayerName: headProfile.sourcePlayerName ?? null,
-            changes: applied
+            beforeHeadId: before.headId,
+            beforeCanonicalKey: before.canonicalKey,
+            afterHeadId: profile.headId,
+            afterCanonicalKey: profile.canonicalKey,
+            changes: result.changes
         });
 
         return {
-            playerRow,
-            sourcePlayerRow: headProfile.sourcePlayerRow ?? null,
-            sourcePlayerName: headProfile.sourcePlayerName ?? null,
-            changes: applied,
-            characterVisuals: visuals
+            ...result,
+            before,
+            after: this.getPlayerHeadId(playerRow),
+            noOp: false
         };
     }
 
     async copyPlayerHeadId(playerRow, donorPlayerRow) {
         const donorRecord = this.#playerRecord(donorPlayerRow);
         const profile = await getPlayerHeadProfile(this.franchise, donorRecord);
-        return this.setPlayerHeadId(playerRow, profile);
+        const result = await this.setPlayerHeadProfile(playerRow, profile);
+        this.changeLog.push({
+            type: "playerHeadIdDiagnosticCopy",
+            playerRow,
+            donorPlayerRow,
+            changes: result.changes
+        });
+        return result;
     }
 
     editCoach(coachRow, changes = {}) {
@@ -1138,7 +1481,11 @@ export class FieldIndexEditor {
             applied.push({ field: "Weight", before, after: record.Weight, displayAfter: displayWeight });
         }
 
-        for (const [fieldName, requestedValue] of Object.entries(changes.rawFields ?? {})) {
+        const rawFieldEntries = Object.entries(changes.rawFields ?? {});
+        if (rawFieldEntries.length > 0 && !this.allowUnsafeRawFields) {
+            throw new Error("rawFields are disabled in production editing. Use the supported coach edit whitelist.");
+        }
+        for (const [fieldName, requestedValue] of rawFieldEntries) {
             const field = record.getFieldByKey(fieldName);
             if (!field) throw new Error(`Coach ${coachRow}: unknown raw field ${fieldName}`);
             if (field.isReference) throw new Error(`Coach ${coachRow}: reference field ${fieldName} is not allowed in rawFields`);
@@ -1347,15 +1694,24 @@ export class FieldIndexEditor {
             }
         }
 
+        const displayGrades = { ...programPointGrades };
+        const displaySchema = { ...programPointSchema };
+        for (const [alias, fieldName] of Object.entries(MY_SCHOOL_DISPLAY_GRADE_ALIASES)) {
+            if (!Object.hasOwn(mySchoolGrades, fieldName)) continue;
+            displayGrades[alias] = mySchoolGrades[fieldName];
+            displaySchema[alias] = mySchoolSchema[fieldName];
+        }
+
         return {
             teamIndex,
             teamName: teamRecord.DisplayName,
             teamPrestige: teamRecord.TeamPrestige,
             facilitiesLevel: teamRecord.FacilitiesLevel,
 
-            // Legacy alias retained so existing Field Index code keeps working.
-            grades: programPointGrades,
-            schema: programPointSchema,
+            // Legacy/display aliases prefer game-verified My School authorities.
+            // Raw Team.ProgramPoints* values remain available under programPointGrades.
+            grades: displayGrades,
+            schema: displaySchema,
 
             programPointGrades,
             programPointSchema,
@@ -1374,17 +1730,26 @@ export class FieldIndexEditor {
         const playingStyleRecord = this.#playingStyleGradeRecord(mySchoolRecord);
         const applied = [];
 
-        // Backward-compatible flat program-point grade API: { budget: "A" }.
+        // Backward-compatible flat display-grade API: { stadiumAtmosphere: "Aplus" }.
+        // Game-verified display aliases route to the authoritative My School field;
+        // explicit { programPoints: ... } remains available for raw Team.ProgramPoints*.
         const reservedKeys = new Set(["programPoints", "programPointGrades", "mySchool", "mySchoolGrades", "playingStyle", "playingStyleGrades"]);
         for (const [key, requestedValue] of Object.entries(grades)) {
             if (reservedKeys.has(key)) continue;
-            const fieldName = TEAM_PROGRAM_POINT_GRADE_FIELDS[key] ?? key;
-            if (!Object.values(TEAM_PROGRAM_POINT_GRADE_FIELDS).includes(fieldName)) {
-                throw new Error(`Unknown team grade: ${key}`);
+            const target = resolveFlatTeamGradeTarget(key);
+            if (!target) throw new Error(`Unknown team grade: ${key}`);
+
+            if (target.group === "mySchool") {
+                if (!mySchoolRecord) throw new Error(`Team ${teamIndex} has no My School tracking record`);
+                const before = mySchoolRecord[target.field];
+                mySchoolRecord[target.field] = validateFieldValue(mySchoolRecord, target.field, requestedValue);
+                applied.push({ group: "mySchool", field: target.field, alias: key, authority: "gameVerifiedDisplay", before, after: mySchoolRecord[target.field] });
+                continue;
             }
-            const before = teamRecord[fieldName];
-            teamRecord[fieldName] = validateFieldValue(teamRecord, fieldName, requestedValue);
-            applied.push({ group: "programPoints", field: fieldName, before, after: teamRecord[fieldName] });
+
+            const before = teamRecord[target.field];
+            teamRecord[target.field] = validateFieldValue(teamRecord, target.field, requestedValue);
+            applied.push({ group: "programPoints", field: target.field, before, after: teamRecord[target.field] });
         }
 
         const programPointChanges = grades.programPoints ?? grades.programPointGrades ?? {};
@@ -1478,11 +1843,213 @@ export class FieldIndexEditor {
         return applied.slice(0, 25);
     }
 
+    // -------------------- CFP ATOMIC BRACKET EDITING --------------------
+
     #bowlRecordForGame(gameRecord) {
         const ref = gameRecord.getReferenceDataByKey("BowlGame");
         if (!ref || ref.tableId === 0 || gameRecord.BowlGame === ZERO_REFERENCE) return null;
         const table = this.franchise.getTableById(ref.tableId);
         return table?.records?.[ref.rowNumber] ?? null;
+    }
+
+    #cfpTeamSeedSnapshot(teamRecord) {
+        if (!teamRecord) return { teamRank: null, cfpRank: null, seed: null, valid: false };
+        const teamRank = Number(teamRecord.TeamRank);
+        const cfpRank = Number(teamRecord.CFPPoll_CurrentRank);
+        const normalizedTeamRank = Number.isInteger(teamRank) ? teamRank : null;
+        const normalizedCfpRank = Number.isInteger(cfpRank) ? cfpRank : null;
+        const seed = CFP_FIRST_ROUND_SEEDS.includes(normalizedTeamRank) ? normalizedTeamRank : null;
+        return {
+            teamRank: normalizedTeamRank,
+            cfpRank: normalizedCfpRank,
+            seed,
+            valid: seed != null && normalizedCfpRank != null,
+            pollRankMatchesSeed: seed != null && normalizedCfpRank === seed
+        };
+    }
+
+    #cfpFirstRoundSeedSlots() {
+        const slots = [];
+        for (const game of this.tables.seasonGame.records) {
+            if (game.isEmpty) continue;
+            const bowl = this.#bowlRecordForGame(game);
+            if (!bowl || !bowl.IsPlayoffBowl || !CFP_FIRST_ROUND_BRACKET_SLOTS.includes(Number(bowl.PlayoffBracketSlot))) continue;
+
+            const played = ["HomeWon", "AwayWon", "Tie"].includes(game.GameStatus);
+            const home = this.franchise.getReferencedRecord(game.HomeTeam);
+            const away = this.franchise.getReferencedRecord(game.AwayTeam);
+            if (!home || !away) throw new Error(`CFP first-round game row ${game.index} has an unresolved participant`);
+
+            const homeSeed = this.#cfpTeamSeedSnapshot(home);
+            const awaySeed = this.#cfpTeamSeedSnapshot(away);
+            if (!homeSeed.valid || !awaySeed.valid) {
+                throw new Error(
+                    `CFP first-round game row ${game.index} is missing a valid TeamRank seed or CFP poll rank. ` +
+                    "Field Index will not guess through incomplete playoff state."
+                );
+            }
+
+            const bowlSeedMarkers = [Number(bowl.Conference1Rank), Number(bowl.Conference2Rank)]
+                .filter(Number.isInteger);
+            slots.push({
+                seed: homeSeed.seed,
+                cfpRank: homeSeed.cfpRank,
+                teamIndex: home.TeamIndex,
+                teamName: home.DisplayName,
+                seasonGameRow: game.index,
+                bracketSlot: Number(bowl.PlayoffBracketSlot),
+                side: "home",
+                played,
+                bowlSeedMarkers
+            });
+            slots.push({
+                seed: awaySeed.seed,
+                cfpRank: awaySeed.cfpRank,
+                teamIndex: away.TeamIndex,
+                teamName: away.DisplayName,
+                seasonGameRow: game.index,
+                bracketSlot: Number(bowl.PlayoffBracketSlot),
+                side: "away",
+                played,
+                bowlSeedMarkers
+            });
+        }
+        return validateCfpFirstRoundSlots(slots).slots;
+    }
+
+    #resetUnplayedCfpGameState(game) {
+        for (const fieldName of [
+            "HomePlayerStatCache",
+            "AwayPlayerStatCache",
+            "HomeTeamStatCache",
+            "AwayTeamStatCache",
+            "ScoringSummaries"
+        ]) {
+            if (game.getFieldByKey(fieldName)) game[fieldName] = ZERO_REFERENCE;
+        }
+        for (const fieldName of [
+            "HomeScore", "AwayScore", "HomeScoreOT", "AwayScoreOT",
+            "HomeScoreQuarter1", "AwayScoreQuarter1",
+            "HomeScoreQuarter2", "AwayScoreQuarter2",
+            "HomeScoreQuarter3", "AwayScoreQuarter3",
+            "HomeScoreQuarter4", "AwayScoreQuarter4"
+        ]) {
+            if (game.getFieldByKey(fieldName)) game[fieldName] = 0;
+        }
+        if (game.getFieldByKey("IsOvertimeGame")) game.IsOvertimeGame = false;
+    }
+
+    #validateFixedBowlSeedMarkers(slots, changedGameRows) {
+        const preserved = [];
+        for (const seasonGameRow of changedGameRows) {
+            const gameSlots = slots.filter(slot => slot.seasonGameRow === seasonGameRow);
+            const game = this.tables.seasonGame.records[seasonGameRow];
+            const bowl = this.#bowlRecordForGame(game);
+            const expectedSeeds = gameSlots.map(slot => slot.seed).sort((a, b) => a - b);
+            // CFB27 stores these BowlGame values as zero-based seed-slot markers:
+            // playoff seeds 5-12 are represented as 4-11. They describe the fixed
+            // bracket locations and are preserved when teams are permuted between them.
+            const expectedMarkers = expectedSeeds.map(seed => seed - 1);
+            const markers = [Number(bowl?.Conference1Rank), Number(bowl?.Conference2Rank)]
+                .filter(value => Number.isInteger(value) && value >= 4 && value <= 11)
+                .sort((a, b) => a - b);
+
+            if (markers.length !== 2 || markers[0] !== expectedMarkers[0] || markers[1] !== expectedMarkers[1]) {
+                throw new Error(
+                    `CFP BowlGame slot markers for SeasonGame row ${seasonGameRow} do not match its fixed seed slots ` +
+                    `(${markers.join("/")} vs ${expectedMarkers.join("/")} for seeds ${expectedSeeds.join("/")})`
+                );
+            }
+            preserved.push({
+                seasonGameRow,
+                bracketSlot: gameSlots[0]?.bracketSlot ?? null,
+                expectedSeeds,
+                expectedConferenceRankMarkers: expectedMarkers,
+                conferenceRankMarkers: markers,
+                preserved: true
+            });
+        }
+        return preserved;
+    }
+
+    #applyCfpFirstRoundPlan(slots, plan, metadata = {}) {
+        // Preflight every write before mutating any record. EditSession will also rebuild
+        // from the untouched source if a staged operation ever throws.
+        for (const change of plan.rankChanges) {
+            const team = this.#teamRecord(change.teamIndex);
+            if (!team.getFieldByKey("TeamRank") || !team.getFieldByKey("CFPPoll_CurrentRank")) {
+                throw new Error(`Team ${change.teamIndex} is missing required CFP rank fields`);
+            }
+            validateFieldValue(team, "TeamRank", change.afterSeed);
+            validateFieldValue(team, "CFPPoll_CurrentRank", change.afterCfpRank);
+        }
+
+        const changedGameRows = [...new Set(plan.participantChanges.map(change => change.seasonGameRow))];
+        for (const change of plan.participantChanges) {
+            const game = this.tables.seasonGame.records[change.seasonGameRow];
+            if (!game || game.isEmpty) throw new Error(`SeasonGame row ${change.seasonGameRow} not found`);
+            const bowl = this.#bowlRecordForGame(game);
+            if (!bowl || !bowl.IsPlayoffBowl || !CFP_FIRST_ROUND_BRACKET_SLOTS.includes(Number(bowl.PlayoffBracketSlot))) {
+                throw new Error(`SeasonGame row ${change.seasonGameRow} is not a CFP first-round game`);
+            }
+            if (["HomeWon", "AwayWon", "Tie"].includes(game.GameStatus)) {
+                throw new Error("Field Index will not change participants in an already completed CFP game");
+            }
+            this.#teamRecord(change.afterTeamIndex);
+        }
+
+        // BowlGame Conference1Rank / Conference2Rank are fixed seed-slot markers in the
+        // verified first-round case. They must stay attached to the slot; changing only
+        // those markers was proven ineffective in-game, so we validate and preserve them.
+        const bowlSeedMarkers = this.#validateFixedBowlSeedMarkers(slots, changedGameRows);
+
+        const rankChanges = plan.rankChanges.map(change => {
+            const team = this.#teamRecord(change.teamIndex);
+            team.TeamRank = validateFieldValue(team, "TeamRank", change.afterSeed);
+            team.CFPPoll_CurrentRank = validateFieldValue(team, "CFPPoll_CurrentRank", change.afterCfpRank);
+            return {
+                ...change,
+                teamName: team.DisplayName,
+                afterTeamRank: team.TeamRank,
+                afterCfpRank: team.CFPPoll_CurrentRank
+            };
+        });
+
+        const participantChanges = plan.participantChanges.map(change => {
+            const game = this.tables.seasonGame.records[change.seasonGameRow];
+            const beforeTeam = this.#teamRecord(change.beforeTeamIndex);
+            const afterTeam = this.#teamRecord(change.afterTeamIndex);
+            const fieldName = change.side === "home" ? "HomeTeam" : "AwayTeam";
+            game[fieldName] = createReference(this.tables.team, afterTeam.index);
+            return {
+                ...change,
+                beforeTeamName: beforeTeam.DisplayName,
+                afterTeamName: afterTeam.DisplayName
+            };
+        });
+
+        for (const seasonGameRow of changedGameRows) {
+            this.#resetUnplayedCfpGameState(this.tables.seasonGame.records[seasonGameRow]);
+        }
+
+        const applied = {
+            operation: metadata.operation ?? "seedAssignments",
+            mechanic: "verified_first_round_seed_permutation",
+            currentAssignments: plan.currentAssignments,
+            desiredAssignments: plan.desiredAssignments,
+            rankChanges,
+            participantChanges,
+            changedGameRows,
+            bowlSeedMarkers,
+            arbitraryTeamInjection: false,
+            completedGamesProtected: true
+        };
+        this.changeLog.push({
+            type: metadata.changeLogType ?? "cfpFirstRoundSeedAssignments",
+            changes: [...rankChanges, ...participantChanges],
+            cfp: applied
+        });
+        return applied;
     }
 
     getEditableCfpBracket() {
@@ -1493,6 +2060,8 @@ export class FieldIndexEditor {
             if (!bowl || !bowl.IsPlayoffBowl) continue;
             const home = this.franchise.getReferencedRecord(game.HomeTeam);
             const away = this.franchise.getReferencedRecord(game.AwayTeam);
+            const homeSeed = this.#cfpTeamSeedSnapshot(home);
+            const awaySeed = this.#cfpTeamSeedSnapshot(away);
             games.push({
                 seasonGameRow: game.index,
                 bracketSlot: bowl.PlayoffBracketSlot,
@@ -1503,61 +2072,79 @@ export class FieldIndexEditor {
                 played: ["HomeWon", "AwayWon", "Tie"].includes(game.GameStatus),
                 homeTeamIndex: home?.TeamIndex ?? null,
                 homeTeamName: home?.DisplayName ?? null,
+                homeSeed: homeSeed.seed,
+                homeTeamRank: homeSeed.teamRank,
+                homeCfpRank: homeSeed.cfpRank,
                 awayTeamIndex: away?.TeamIndex ?? null,
-                awayTeamName: away?.DisplayName ?? null
+                awayTeamName: away?.DisplayName ?? null,
+                awaySeed: awaySeed.seed,
+                awayTeamRank: awaySeed.teamRank,
+                awayCfpRank: awaySeed.cfpRank,
+                conference1Rank: Number.isInteger(Number(bowl.Conference1Rank)) ? Number(bowl.Conference1Rank) : null,
+                conference2Rank: Number.isInteger(Number(bowl.Conference2Rank)) ? Number(bowl.Conference2Rank) : null
             });
         }
         return games.sort((a, b) => a.bracketSlot - b.bracketSlot);
     }
 
+    getCfpFirstRoundSeedAssignments() {
+        const slots = this.#cfpFirstRoundSeedSlots();
+        return {
+            mechanic: "verified_first_round_seed_permutation",
+            assignments: Object.fromEntries(slots.map(slot => [slot.seed, slot.teamIndex])),
+            slots: copyJson(slots),
+            arbitraryTeamInjection: false,
+            completedGamesProtected: true
+        };
+    }
+
+    editCfpFirstRoundSeedAssignments(assignments) {
+        const slots = this.#cfpFirstRoundSeedSlots();
+        const plan = planCfpFirstRoundSeedAssignments(slots, assignments);
+        return this.#applyCfpFirstRoundPlan(slots, plan, { operation: "seedAssignments" });
+    }
+
+    swapCfpFirstRoundTeams(teamIndexA, teamIndexB) {
+        const slots = this.#cfpFirstRoundSeedSlots();
+        const plan = planCfpFirstRoundTeamSwap(slots, teamIndexA, teamIndexB);
+        return this.#applyCfpFirstRoundPlan(slots, plan, { operation: "teamSwap" });
+    }
+
     editCfpGameParticipants(seasonGameRow, { homeTeamIndex, awayTeamIndex }) {
-        const game = this.tables.seasonGame.records[seasonGameRow];
-        if (!game || game.isEmpty) throw new Error(`SeasonGame row ${seasonGameRow} not found`);
-        const bowl = this.#bowlRecordForGame(game);
-        if (!bowl || !bowl.IsPlayoffBowl) throw new Error("Selected game is not a CFP playoff game");
-        if (["HomeWon", "AwayWon", "Tie"].includes(game.GameStatus)) {
+        const before = this.getEditableCfpBracket().find(game => game.seasonGameRow === seasonGameRow);
+        if (!before) throw new Error(`SeasonGame row ${seasonGameRow} not found in the CFP bracket`);
+        if (!CFP_FIRST_ROUND_BRACKET_SLOTS.includes(Number(before.bracketSlot))) {
+            throw new Error("Production CFP participant editing is currently limited to the game-verified first round");
+        }
+        if (before.played) {
             throw new Error("Field Index will not change participants in an already completed CFP game");
         }
-        if (homeTeamIndex === awayTeamIndex) throw new Error("Home and away team cannot be the same");
-        const homeTeam = this.#teamRecord(homeTeamIndex);
-        const awayTeam = this.#teamRecord(awayTeamIndex);
 
-        const beforeHome = this.franchise.getReferencedRecord(game.HomeTeam);
-        const beforeAway = this.franchise.getReferencedRecord(game.AwayTeam);
-        game.HomeTeam = createReference(this.tables.team, homeTeam.index);
-        game.AwayTeam = createReference(this.tables.team, awayTeam.index);
+        const slots = this.#cfpFirstRoundSeedSlots();
+        const plan = planCfpGameParticipantPermutation(slots, seasonGameRow, { homeTeamIndex, awayTeamIndex });
+        const atomicPlan = this.#applyCfpFirstRoundPlan(slots, plan, {
+            operation: "matchupPermutation",
+            changeLogType: "cfpGameParticipants"
+        });
+        const after = this.getEditableCfpBracket().find(game => game.seasonGameRow === seasonGameRow);
 
-        // CFP edits are limited to unplayed games. Clear any stale per-game caches if the save happened to contain them.
-        for (const fieldName of ["HomePlayerStatCache", "AwayPlayerStatCache", "ScoringSummaries"]) {
-            if (game.getFieldByKey(fieldName)) game[fieldName] = ZERO_REFERENCE;
-        }
-        game.HomeScore = 0;
-        game.AwayScore = 0;
-        game.HomeScoreOT = 0;
-        game.AwayScoreOT = 0;
-        for (const quarter of [1, 2, 3, 4]) {
-            game[`HomeScoreQuarter${quarter}`] = 0;
-            game[`AwayScoreQuarter${quarter}`] = 0;
-        }
-
-        const applied = {
+        return {
             seasonGameRow,
-            bracketSlot: bowl.PlayoffBracketSlot,
+            bracketSlot: before.bracketSlot,
             before: {
-                homeTeamIndex: beforeHome?.TeamIndex ?? null,
-                homeTeamName: beforeHome?.DisplayName ?? null,
-                awayTeamIndex: beforeAway?.TeamIndex ?? null,
-                awayTeamName: beforeAway?.DisplayName ?? null
+                homeTeamIndex: before.homeTeamIndex,
+                homeTeamName: before.homeTeamName,
+                awayTeamIndex: before.awayTeamIndex,
+                awayTeamName: before.awayTeamName
             },
             after: {
-                homeTeamIndex,
-                homeTeamName: homeTeam.DisplayName,
-                awayTeamIndex,
-                awayTeamName: awayTeam.DisplayName
-            }
+                homeTeamIndex: after?.homeTeamIndex ?? null,
+                homeTeamName: after?.homeTeamName ?? null,
+                awayTeamIndex: after?.awayTeamIndex ?? null,
+                awayTeamName: after?.awayTeamName ?? null
+            },
+            atomicPlan
         };
-        this.changeLog.push({ type: "cfpGameParticipants", ...applied });
-        return applied;
     }
 
     getCapabilities() {
@@ -1567,6 +2154,7 @@ export class FieldIndexEditor {
             playerEditing: true,
             playerAttributesEditing: true,
             playerClassYearEditing: true,
+            redshirtConsistencyWarnings: true,
             playerAbilitiesEditing: true,
             playerPhysicalAbilityRankEditing: true,
             playerPhysicalAbilityTierEditing: true,
@@ -1576,9 +2164,16 @@ export class FieldIndexEditor {
             coachPointsEditing: true,
             coachTalentTreeEditing: true,
             coachTalentNodeStatusEditing: true,
-            playerScalarAppearanceEditing: PLAYER_APPEARANCE_FIELDS.every(field => !samplePlayer || Boolean(samplePlayer.getFieldByKey(field))),
+            coachNamedTalentEditing: Boolean(this.coachTalentCatalog?.available),
+            coachTalentCatalogTreeCount: this.coachTalentCatalog?.treeCount ?? 0,
+            coachTalentCatalogTalentCount: this.coachTalentCatalog?.talentCount ?? 0,
+            playerScalarAppearanceEditing: PLAYER_SAFE_APPEARANCE_FIELDS.every(field => !samplePlayer || Boolean(samplePlayer.getFieldByKey(field))),
             playerHeadIdEditing: true,
+            playerHeadIdCatalogLoaded: Boolean(this.headCatalog.exists),
+            playerHeadIdCatalogCount: this.headCatalog.size,
+            playerHeadIdCatalogUsableCount: this.headCatalog.counts.usable,
             playerHeadIdPreservesGear: true,
+            playerHeadIdDonorRequired: false,
             characterVisualsHeadEditing: true,
             coachScalarAppearanceEditing: COACH_APPEARANCE_FIELDS.every(field => !sampleCoach || Boolean(sampleCoach.getFieldByKey(field))),
             characterVisualsBlobEditing: false,
@@ -1590,10 +2185,15 @@ export class FieldIndexEditor {
             playingStyleGradesEditing: Boolean(this.tables.playerTypeGrade),
             top25Editing: true,
             cfpBracketParticipantEditing: true,
+            cfpFirstRoundSeedPermutationEditing: true,
+            cfpArbitraryTeamInjectionEditing: false,
             cfpCompletedGameEditing: false,
             automaticBackups: true,
             roundTripVerification: true,
-            cfb27SafeWriter: true
+            cfb27SafeWriter: true,
+            productionRawFieldEditing: false,
+            unsafeRawFieldEditingEnabled: this.allowUnsafeRawFields,
+            stagedEditingSupportedByBackend: true
         };
     }
 
@@ -1672,5 +2272,7 @@ export {
     TEAM_GRADE_FIELDS,
     TEAM_PROGRAM_POINT_GRADE_FIELDS,
     MY_SCHOOL_GRADE_FIELDS,
+    MY_SCHOOL_DISPLAY_GRADE_ALIASES,
+    resolveFlatTeamGradeTarget,
     POLL_FIELDS
 };

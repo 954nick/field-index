@@ -9,8 +9,10 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import v8 from "node:v8";
 import { buildFieldIndexImportSql } from "./lib/build_import_sql.js";
 import { preparePregameImport } from "./lib/prepare_import.js";
-import { runPsqlFile } from "./lib/psql.js";
+import { runPsqlCommand, runPsqlFile } from "./lib/psql.js";
+import { sqlInteger, sqlText } from "./lib/sql.js";
 import { runMigrations } from "./migrate.js";
+import { verifyDatabase } from "./verify.js";
 
 const databaseDirectory = path.dirname(fileURLToPath(import.meta.url));
 const projectDirectory = path.dirname(databaseDirectory);
@@ -47,7 +49,9 @@ function parseArguments(argv) {
         dynastyName: null,
         dryRun: false,
         sqlOut: null,
-        skipMigrations: false
+        skipMigrations: false,
+        forceReimport: false,
+        skipVerify: false
     };
 
     for (let index = 0; index < args.length; index++) {
@@ -64,6 +68,10 @@ function parseArguments(argv) {
             options.sqlOut = args[++index];
         } else if (argument === "--skip-migrations") {
             options.skipMigrations = true;
+        } else if (argument === "--force-reimport") {
+            options.forceReimport = true;
+        } else if (argument === "--skip-verify") {
+            options.skipVerify = true;
         } else if (argument.startsWith("--")) {
             throw new Error(`Unknown option: ${argument}`);
         }
@@ -140,6 +148,28 @@ async function buildModel(options) {
     );
 }
 
+function findCompletedDuplicateImport(model) {
+    const result = runPsqlCommand(`
+        SELECT si.import_id
+        FROM dynasties AS d
+        JOIN seasons AS s
+          ON s.dynasty_id = d.dynasty_id
+         AND s.season_index = ${sqlInteger(model.metadata.currentSeasonIndex)}
+        JOIN save_imports AS si
+          ON si.season_id = s.season_id
+         AND si.file_hash = ${sqlText(model.source.fileHash)}
+        WHERE d.dynasty_key = ${sqlText(model.dynastyKey)}
+          AND EXISTS (
+              SELECT 1
+              FROM player_identity_observations AS pio
+              WHERE pio.import_id = si.import_id
+          )
+        LIMIT 1;
+    `);
+    const importId = Number(result);
+    return Number.isInteger(importId) && importId > 0 ? importId : null;
+}
+
 function printSummary(model, options) {
     console.log("\n-------------------- FIELD INDEX DATABASE IMPORT --------------------");
     console.log(`Dynasty: ${model.dynastyName} (${model.dynastyKey})`);
@@ -178,6 +208,14 @@ function printSummary(model, options) {
     console.log(`Player game stat lines: ${model.summary.playerGameStatLines}`);
     console.log(`Normalized player game facts: ${model.summary.playerGameStatFacts}`);
     console.log(`Scoring events: ${model.summary.scoringEvents}`);
+    console.log(`Ranking snapshots: ${model.summary.rankingSnapshots}`);
+    console.log(`Recruiting prospects: ${model.summary.recruitingProspects}`);
+    console.log(`Recruiting board targets: ${model.summary.recruitingBoardTargets}`);
+    console.log(`Recruiting class-ranked teams: ${model.summary.recruitingClassRankedTeams}`);
+    console.log(`Depth-chart slots: ${model.summary.depthChartSlots}`);
+    console.log(`Award snapshots: ${model.summary.awardSnapshots}`);
+    console.log(`Coach talent trees: ${model.summary.coachTalentTrees}`);
+    console.log(`Coach talent nodes: ${model.summary.coachTalentNodes}`);
     if (options.dryRun) console.log("Mode: DRY RUN (PostgreSQL was not modified)");
 }
 
@@ -187,9 +225,29 @@ async function importSave(options) {
     }
 
     const model = await buildModel(options);
-    const sql = buildFieldIndexImportSql(model);
 
     printSummary(model, options);
+
+    if (!options.dryRun && !options.forceReimport) {
+        const duplicateImportId = findCompletedDuplicateImport(model);
+        if (duplicateImportId) {
+            console.log(`Duplicate import skipped: import_id=${duplicateImportId} already contains complete extended snapshots`);
+            const verification = options.skipVerify ? null : verifyDatabase();
+            if (verification && !verification.passed) {
+                throw new Error("Database verification failed after duplicate-import detection");
+            }
+            return {
+                model,
+                sql: null,
+                executed: false,
+                duplicate: true,
+                importId: duplicateImportId,
+                verification
+            };
+        }
+    }
+
+    const sql = buildFieldIndexImportSql(model);
 
     if (options.sqlOut) {
         const sqlOut = path.resolve(options.sqlOut);
@@ -215,7 +273,11 @@ async function importSave(options) {
     }
 
     console.log("Field Index data including game storage imported successfully");
-    return { model, sql, executed: true };
+    const verification = options.skipVerify ? null : verifyDatabase();
+    if (verification && !verification.passed) {
+        throw new Error("Database verification failed after import");
+    }
+    return { model, sql, executed: true, verification };
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {

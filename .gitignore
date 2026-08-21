@@ -1,19 +1,82 @@
 # -------------------- JAVASCRIPT DEPENDENCIES --------------------
-parser/node_modules/
+node_modules/
 
-# -------------------- PRIVATE GAME FILES --------------------
+
+# -------------------- PYTHON ENVIRONMENT / CACHE --------------------
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+
+# -------------------- PRIVATE CFB27 SAVE FILES --------------------
 DYNASTY-*
+
+
+# -------------------- CFB27 SCHEMAS --------------------
+# Ignore compressed schemas by default, but keep Field Index's
+# single canonical CFB27 486.1 schema in source control.
 *.gz
 !parser/schemas/C27_486_1.gz
 
+
 # -------------------- DATABASE / LOCAL ENVIRONMENT --------------------
 .env
+.env.*
+!.env.example
+!database/.env.example
+
 *.log
-__pycache__/
-*.pyc
-# -------------------- CFB27 GAME ASSETS --------------------
+
+
+# -------------------- RAW CFB27 GAME ASSETS --------------------
+# Large Frosty/exported game assets remain local.
+# Lightweight mapping/catalog JSON files under assets/mappings/
+# ARE part of Field Index and should remain tracked.
 assets/awards/
 assets/coaches/
 assets/player_portraits/
 assets/postseason/
 assets/teams/
+
+
+# -------------------- LOCAL GENERATED DATA --------------------
+# Runtime/regression/import reports are reproducible and should
+# not be committed. Keep the directory itself through .gitkeep.
+data/*
+!data/.gitkeep
+
+
+# -------------------- PATCH / HOTFIX HANDOFF FILES --------------------
+# Temporary files used while merging development patches.
+*_PATCH_README.txt
+*_PATCH_SHA256.txt
+*_HOTFIX_README.txt
+*_FIX_README.txt
+PACKAGE_VERIFICATION.txt
+HEAD_GENERIC_SLOT_FALLBACK_README.txt
+HEAD_ID_MASTER_CATALOG_PATCH_README.txt
+
+
+# -------------------- TEST / COVERAGE OUTPUT --------------------
+coverage/
+.nyc_output/
+
+
+# -------------------- TEMPORARY FILES --------------------
+*.tmp
+*.temp
+*.bak
+*.swp
+*~
+
+
+# -------------------- OPERATING SYSTEM FILES --------------------
+.DS_Store
+Thumbs.db
+desktop.ini
+
+
+# -------------------- IDE / LOCAL EDITOR STATE --------------------
+.vscode/
+.idea/

@@ -1,105 +1,136 @@
 # Field Index Analytics Layer
 
-Migration `006_analytics_layer.sql` turns the normalized PostgreSQL storage
-layer into a reporting layer for Field Index and future Power BI work.
+Migrations `006_analytics_layer.sql` and `007_extended_dynasty_history.sql` turn
+the normalized PostgreSQL store into the reporting backend for Field Index and
+future Power BI dashboards.
 
-## Separation of responsibilities
+## Separation of Responsibilities
 
-Field Index now has three database layers:
+Field Index has three database layers:
 
 ```text
-public     raw/persistent imported data
-analytics  curated canonical views and calculated football metrics
-bi         flat dimensions/facts intended for BI tools
+public     persistent normalized imports/snapshots
+analytics  curated canonical football/history views
+bi         flat dimensions/facts intended for BI consumers
 ```
 
-No analytics view writes to the dynasty save or mutates imported history.
+These are read-only analytical layers. They do not write to a dynasty save or
+mutate imported history.
 
-## Lifecycle-safe import selection
+## Lifecycle-Safe Import Selection
 
-CFB27 can clear some historical stat caches during later offseason stages, so
-"latest import" is not always the best source for every type of analysis.
-Migration 006 handles that intentionally:
+CFB27 can clear historical stat caches during later offseason stages, so the
+newest imported file is not always the richest source for every analysis.
+Migration 006 deliberately separates selectors:
 
-- `analytics.latest_game_imports` selects the latest schedule/result snapshot
-  for each season.
-- `analytics.latest_roster_imports` selects the latest import whose roster
-  belongs to each season.
-- `analytics.best_team_game_imports` selects the import with the most retained
-  team box-score rows for each season.
-- `analytics.best_player_game_imports` selects the import with the most retained
-  player game-stat lines for each season.
-- `analytics.best_scoring_imports` selects the import with the most retained
-  scoring-summary events for each season.
+- `analytics.latest_game_imports` — newest schedule/result context per season
+- `analytics.latest_roster_imports` — newest roster context per roster season
+- `analytics.best_team_game_imports` — checkpoint with greatest team box-score coverage
+- `analytics.best_player_game_imports` — checkpoint with greatest player stat-line coverage
+- `analytics.best_scoring_imports` — checkpoint with greatest scoring-event coverage
 
-This lets a National Signing Day save provide the newest roster context without
-silently replacing a richer Players Leaving checkpoint for completed-season
-player stats.
+A National Signing Day save can therefore supply the newest roster without
+silently replacing a richer completed-season game-stat checkpoint.
 
-## Main analytics views
+## Core Game Views
 
-### Games
+- `analytics.games` — one canonical row per logical schedule slot
+- `analytics.team_games` — one completed-game side per team with opponent,
+  result, scoring, offense, defense-allowed context, turnovers, red zone, downs,
+  possession, and line score
+- `analytics.player_games` — one player/game row with passing, rushing,
+  receiving, defense, O-line, kicking, punting, return, and fumble metrics
+- `analytics.scoring_events` — scoring-summary history from the richest retained
+  season checkpoint
 
-- `analytics.games` — one canonical schedule/result row per logical game.
-- `analytics.team_games` — one team-side row per completed game with opponent,
-  result, scoring, offense, defense-allowed context, turnovers, red zone,
-  downs, possession, and line-score fields.
-- `analytics.player_games` — one player/game row with wide passing, rushing,
-  receiving, defense, O-line, kicking, punting, return, and fumble metrics.
-- `analytics.scoring_events` — scoring-summary event history from the richest
-  retained season import.
+## Season Analytics
 
-### Season analytics
-
-- `analytics.player_seasons` — latest roster identity plus aggregated game
-  production for every tracked player-season, including players with zero
-  recorded box-score production.
-- `analytics.team_offense_seasons` — scoring, yardage, efficiency, turnover,
-  conversion, red-zone, sack-allowed, and possession metrics.
+- `analytics.player_seasons` — roster identity plus aggregated production,
+  including tracked players with zero box-score production
+- `analytics.team_offense_seasons` — scoring, yardage, efficiency, turnovers,
+  conversions, red-zone, sacks allowed, possession
 - `analytics.team_defense_seasons` — scoring/yards allowed, opponent efficiency,
-  takeaways, sacks, conversions, and red-zone defense.
-- `analytics.team_rankings` — game poll rank plus calculated national ranks for
-  ratings, scoring offense/defense, total/rush/pass offense/defense, and
-  turnover margin.
-- `analytics.conference_seasons` — conference-level records, ratings, offense,
-  defense, ranked-team counts, and comparative ranks.
-- `analytics.coach_seasons` — coach progression/contract context plus normalized
-  season and career accomplishments.
+  takeaways, sacks, conversions, red-zone defense
+- `analytics.team_rankings` — in-game poll rank plus calculated national rankings
+  for ratings, offense/defense, and turnover margin
+- `analytics.conference_seasons` — conference records, ratings, offense, defense,
+  ranked-team counts, and comparative ranks
+- `analytics.coach_seasons` — progression/contract context plus normalized season
+  and career accomplishments
 
-## Career and historical analysis
+## Careers, Transfers, and Progression
 
-- `analytics.player_careers` aggregates tracked player production across seasons.
-- `analytics.coach_careers` exposes the newest career snapshot per persistent coach.
-- `analytics.team_history` adds year-over-year rating, wins, and conference changes.
-- `analytics.player_history` adds year-over-year overall/team context.
-- `analytics.coach_history` adds year-over-year team, level, and prestige changes.
-- `analytics.player_transfers` identifies explicit transfers and team changes
-  observed across tracked seasons.
+- `analytics.player_careers`
+- `analytics.coach_careers`
+- `analytics.team_history`
+- `analytics.player_history`
+- `analytics.coach_history`
+- `analytics.player_transfers`
 
-Field Index also exposes every imported checkpoint rather than only one row per
-season:
+Import-by-import progression remains queryable through:
 
 - `analytics.team_snapshot_history`
 - `analytics.player_snapshot_history`
 - `analytics.coach_snapshot_history`
 
-These make weekly progression, ranking movement, development, position changes,
-job changes, and other import-to-import trends queryable.
+These support weekly ratings changes, player development, position/team changes,
+coach job changes, and other checkpoint-to-checkpoint movement.
 
-## Long-form latest-season views
+## Ranking History — Migration 007
 
-The normalized fact tables remain available through curated latest-roster views:
+`analytics.ranking_history` stores each imported Media, Coaches, and CFP poll
+observation with rank, prior rank, points, first-place votes, team identity, and
+import timing. It can answer both current-rank and movement-over-time questions.
+
+## Recruiting Analytics — Migration 007
+
+- `analytics.recruiting_history` — import-by-import prospect status, rankings,
+  offers, destination state, class context, and roster-match evidence
+- `analytics.recruiting_roster_matches` — recruit-to-persistent-player links with
+  explicit match strategy
+- `analytics.recruiting_classes` — team/class rollups suitable for recruiting
+  class comparisons
+
+Roster matching is intentionally conservative: direct evidence wins; otherwise
+a fingerprint must resolve uniquely. Ambiguous candidates stay unresolved.
+
+## Depth-Chart History — Migration 007
+
+`analytics.depth_chart_history` exposes each imported depth slot with team,
+position key, depth, roster season, player identity when resolved, jersey,
+position, and overall. This allows depth-chart movement and starter history to
+be analyzed across checkpoints.
+
+## Postseason and Championship History — Migration 007
+
+- `analytics.postseason_history` — per-import CFP completion, champion,
+  runner-up, Heisman, and stored CFP-round state
+- `analytics.postseason_games` — canonical postseason/playoff/bowl games
+- `analytics.championship_history` — season-level championship summary
+
+Postseason game classification uses stored CFB27 week/bowl metadata rather than
+assuming one hard-coded week number.
+
+## Award History — Migration 007
+
+`analytics.award_history` stores available player and coach award observations by
+season/import, with persistent entity/team links when resolvable.
+
+## Long-Form Latest-Roster Views
+
+Normalized fact tables remain available through curated views:
 
 - `analytics.player_attributes`
 - `analytics.player_abilities`
 - `analytics.team_grades`
 - `analytics.coach_stats`
 
-They preserve filterable long-form data instead of forcing reports to parse JSON.
+They keep filterable metrics in long form instead of forcing a consumer to parse
+JSON.
 
-## Power BI schema
+## BI Schema
 
-The `bi` schema provides six dimensions:
+The existing dimension layer includes:
 
 - `bi.dim_dynasty`
 - `bi.dim_season`
@@ -108,14 +139,28 @@ The `bi` schema provides six dimensions:
 - `bi.dim_player`
 - `bi.dim_coach`
 
-It also provides fact views for games, team/player/coach seasons, player game
+Core facts from migration 006 cover games, team/player/coach seasons, player game
 stats, attributes, abilities, grades, coach stats, scoring events, transfers,
-careers, conference seasons, and import-to-import progression.
+careers, conferences, and progression.
 
-These views already choose canonical imports and flatten calculations, so a BI
-model does not need to parse JSON or decide which save checkpoint to use.
+Migration 007 adds BI-ready facts for:
 
-## Example queries
+- `bi.fact_ranking_snapshot`
+- `bi.fact_recruiting_prospect`
+- `bi.fact_recruiting_class`
+- `bi.fact_recruiting_roster_match`
+- `bi.fact_depth_chart`
+- `bi.fact_postseason`
+- `bi.fact_postseason_game`
+- `bi.fact_championship`
+- `bi.fact_award`
+
+The database is therefore prepared for eventual dashboard work without requiring
+the Power BI model to parse JSON, rediscover entity identity, or decide which
+lifecycle checkpoint is canonical. **Actual Power BI dashboards are still
+intentionally deferred.**
+
+## Example Queries
 
 See:
 
@@ -123,18 +168,19 @@ See:
 database/queries/analytics_examples.sql
 ```
 
-It includes examples for team rankings, passing/rushing/receiving/defensive
-leaders, team and player game logs, conferences, coaches, transfers, and
-historical progression.
+Examples cover team/player/coach performance, transfer/development history,
+ranking movement, recruiting classes and roster matches, depth charts,
+postseason/championships, and awards.
 
 ## Verification
 
-After migration 006, run:
+After migration 007 and at least one real save import:
 
 ```powershell
-node database/verify.js
+npm run db:verify
 ```
 
-The verifier checks raw database integrity plus analytics/BI schemas, all views,
-canonical row counts, history coverage, key uniqueness, transfer consistency,
-and BI fact parity.
+The verifier checks raw relationships plus analytics/BI schemas, canonical row
+counts, history coverage, uniqueness, transfer consistency, identity evidence,
+ranking validity, recruiting links, depth-chart resolution, postseason coverage,
+award links, and BI fact parity.
